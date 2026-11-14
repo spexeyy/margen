@@ -1,0 +1,53 @@
+{
+  "firstDay": "2027-01-01",
+  "days": 105,
+  "size": 100,
+  "landerHeight": 2.0,
+  "horizon": {
+    "min": -5.0,
+    "step": 0.1,
+    "count": 360
+  },
+  "sites": [
+    {
+      "id": "ridge",
+      "name": "Shackleton connecting ridge",
+      "lon": 196.739,
+      "lat": -89.684,
+      "source": "Ridge center, LPSC 2025 abstract 2443",
+      "x0": -3760.0,
+      "y0": -8160.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "mouton",
+      "name": "Mons Mouton",
+      "lon": 29.13,
+      "lat": -84.78,
+      "source": "Athena (IM-2) aim point, LROC",
+      "x0": 76100.0,
+      "y0": 139380.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "gerlache",
+      "name": "de Gerlache rim",
+      "lon": 291.496,
+      "lat": -88.313,
+      "source": "Best-lit spot within 5 km of the Artemis candidate region de Gerlache Rim 2, from NASA AVGVISIB",
+      "x0": -48620.0,
+      "y0": 19760.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "nobile",
+      "name": "Nobile rim",
+      "lon": 37.27,
+      "lat": -85.27,
+      "source": "Best-lit spot within 5 km of the Artemis candidate region Nobile Rim 1, from NASA AVGVISIB",
+      "x0": 85900.0,
+      "y0": 115220.0,
+      "pixel": 20.0
+    }
+  ]
+}

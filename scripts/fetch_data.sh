@@ -18,6 +18,6 @@ for url in \
 do
   out="data/raw/$(basename "$url")"
   [ -f "$out" ] && continue
-  curl -fL --retry 3 -C - -o "$out.part" "$url"
+  curl -fL --retry 5 --retry-all-errors -C - -o "$out.part" "$url"
   mv "$out.part" "$out"
 done
