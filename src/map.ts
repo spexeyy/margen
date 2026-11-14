@@ -1,4 +1,4 @@
-import { LANDINGS, NEEDS_EARTH, NEEDS_SUNLIGHT, SCATTER_M, offsets } from "./mission";
+import { LANDINGS, SCATTER_M, gradient, offsets } from "./mission";
 import type { Window } from "./mission";
 import { color, isLight } from "./theme";
 
@@ -26,11 +26,9 @@ function canvasOf(size: number): [HTMLCanvasElement, CanvasRenderingContext2D, I
 export function shade(ground: Int16Array, size: number, pixel: number): HTMLCanvasElement {
   const [canvas, ctx, image] = canvasOf(size);
   const [base, range] = isLight() ? [150, 100] : [10, 115];
-  const at = (r: number, c: number) => ground[Math.min(size - 1, Math.max(0, r)) * size + Math.min(size - 1, Math.max(0, c))];
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
-      const dx = (at(r, c + 1) - at(r, c - 1)) / (2 * pixel);
-      const dy = (at(r + 1, c) - at(r - 1, c)) / (2 * pixel);
+      const [dx, dy] = gradient(ground, size, pixel, r, c);
       const norm = Math.hypot(dx, dy, 1);
       const lit = Math.max(0, (-dx * LIGHT[0] - dy * LIGHT[1] + LIGHT[2]) / norm);
       const gray = base + range * lit;
@@ -42,7 +40,7 @@ export function shade(ground: Int16Array, size: number, pixel: number): HTMLCanv
 }
 
 export function zone(window: Window, size: number): HTMLCanvasElement {
-  const margin = window.sunlight.map((s, p) => Math.min(s / NEEDS_SUNLIGHT, window.earth[p] / NEEDS_EARTH) - 1);
+  const margin = window.margin;
   const fine = size * DETAIL;
   const field = new Float32Array(fine * fine);
   for (let y = 0; y < fine; y++) {

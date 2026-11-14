@@ -1,4 +1,4 @@
-import { GOOD_CHANCE } from "./mission";
+import { GOOD_CHANCE, percent } from "./mission";
 
 const DAY_MS = 86400000;
 
@@ -40,7 +40,7 @@ export function datePicker(firstDay: number, dates: number, pick: (date: number)
         cell.style.setProperty("--chance", String(chances[date]));
         cell.classList.toggle("good", chances[date] >= GOOD_CHANCE);
         cell.setAttribute("aria-pressed", String(date === current));
-        cell.title = `${Math.round(100 * chances[date])}% chance`;
+        cell.title = `${percent(chances[date])} chance`;
         cell.onclick = () => {
           close();
           pick(date);

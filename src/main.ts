@@ -8,7 +8,7 @@ import { siteMenu } from "./siteMenu";
 import { drawSky, drawTimeline, hoursUntilChange, withVisibility } from "./horizon";
 import type { Seen, Sky } from "./horizon";
 import { drawMap, onDrag, shade, zone } from "./map";
-import { GOOD_CHANCE, LANDINGS, Mission, NEEDS_EARTH, NEEDS_SUNLIGHT, WINDOW_DAYS } from "./mission";
+import { GOOD_CHANCE, LANDINGS, MAX_SLOPE_DEG, Mission, NEEDS_EARTH, NEEDS_SUNLIGHT, WINDOW_DAYS, percent } from "./mission";
 import type { Window } from "./mission";
 import { EARTH, Observer, SUN, horizonAt, toLonLat, toXY } from "./sky";
 import { isLight, onThemeChange } from "./theme";
@@ -23,12 +23,12 @@ const horizons = new Map<string, Uint8Array>();
 const windows = new Map<string, Window>();
 const zones = new Map<string, HTMLCanvasElement>();
 const bestAims = new Map<string, [number, number]>();
+const goodDates = new Map<string, number>();
 
 const firstDay = Date.parse(`${index.firstDay}T00:00:00Z`);
 const isoDate = (date: number) => new Date(firstDay + date * DAY_MS).toISOString().slice(0, 10);
 const label = (date: number, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) =>
   new Date(firstDay + date * DAY_MS).toLocaleDateString("en-US", { ...options, timeZone: "UTC" });
-const percent = (value: number) => `${Math.round(100 * value)}%`;
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const mapCanvas = byId<HTMLCanvasElement>("map");
@@ -203,14 +203,29 @@ function renderCards() {
       const chance = mission.chance(state.date, ...aim);
       const late = mission.slipDays(state.date, ...aim);
       const slip = chance < GOOD_CHANCE ? "Not a good date here" : late === 0 ? "Works only on this date" : `Works up to ${late} ${late === 1 ? "day" : "days"} late`;
+      const good = goodDates.has(site.id) ? `${goodDates.get(site.id)} of ${mission.dates}` : "counting";
+      const flat = mission.slope.filter((s) => s <= MAX_SLOPE_DEG).length / mission.slope.length;
       const card = document.createElement("button");
       card.className = "card";
       card.setAttribute("aria-pressed", String(site.id === state.site));
-      card.innerHTML = `<span class="card-name">${site.name}</span><span class="card-value">${percent(chance)}</span><span class="card-label">Chance the mission works, at its safest spot</span><span class="card-fact">${slip}</span><span class="card-fact">Good dates Jan–Mar: ${mission.goodDates(...aim)} of ${mission.dates}</span><span class="card-source">${site.source}</span>`;
+      card.innerHTML = `<span class="card-name">${site.name}</span><span class="card-value">${percent(chance)}</span><span class="card-label">Chance the mission works, at its safest spot</span><span class="card-fact">${slip}</span><span class="card-fact">Good dates Jan–Mar: ${good}</span><span class="card-fact">Flat ground: ${percent(flat)} of the map</span><span class="card-source">${site.source}</span>`;
       card.onclick = () => update({ site: site.id, aim: aim });
       return card;
     }),
   );
+}
+
+async function countGoodDates() {
+  for (const { site } of sites) {
+    const mission = missions.get(site.id)!;
+    let count = 0;
+    for (let date = 0; date < mission.dates; date++) {
+      count += Number(mission.chance(date, ...bestAim(site.id, date)) >= GOOD_CHANCE);
+      await new Promise((resolve) => setTimeout(resolve));
+    }
+    goodDates.set(site.id, count);
+    renderCards();
+  }
 }
 
 function northOf(site: Site, extent: number): [number, number] {
@@ -261,12 +276,19 @@ function render() {
 
   renderMap(mission, outcomes);
   renderAim(cell);
-  menu.render(state.site, (id) => missions.get(id)!.chance(state.date, ...bestAim(id, state.date)));
+  menu.render(state.site, (id) => percent(missions.get(id)!.chance(state.date, ...bestAim(id, state.date))));
   byId("count").textContent = (chance * LANDINGS).toLocaleString("en-US");
-  byId("summary").textContent = `${percent(chance)} chance the mission works. Sunlight ${percent(window.sunlight[cell])}, Earth in view ${percent(window.earth[cell])}.`;
+  const slope = `${mission.slope[cell].toFixed(1)}°`;
+  byId("summary").textContent = `${percent(chance)} chance the mission works. Slope ${slope}. On landing day, Sun ${percent(window.landingSun[cell])} and Earth ${percent(window.landingEarth[cell])}. Over 14 days, sunlight ${percent(window.sunlight[cell])} and Earth in view ${percent(window.earth[cell])}.`;
   byId("chance").textContent = percent(chance);
   byId("map-chance").textContent = percent(chance);
   byId("chance").classList.toggle("good", chance >= GOOD_CHANCE);
+  byId("slope").textContent = slope;
+  byId("slope").classList.toggle("short", mission.slope[cell] > MAX_SLOPE_DEG);
+  byId("landing-sun").textContent = percent(window.landingSun[cell]);
+  byId("landing-sun").classList.toggle("short", window.landingSun[cell] < NEEDS_SUNLIGHT);
+  byId("landing-earth").textContent = percent(window.landingEarth[cell]);
+  byId("landing-earth").classList.toggle("short", window.landingEarth[cell] < NEEDS_EARTH);
   byId("sunlight").textContent = percent(window.sunlight[cell]);
   byId("sunlight").classList.toggle("short", window.sunlight[cell] < NEEDS_SUNLIGHT);
   byId("earth").textContent = percent(window.earth[cell]);
@@ -364,3 +386,4 @@ onThemeChange(render);
 readUrl();
 render();
 renderCards();
+void countGoodDates();

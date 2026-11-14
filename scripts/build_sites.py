@@ -37,7 +37,7 @@ SITES = [
     },
     {
         "id": "gerlache",
-        "note": "Artemis candidate region",
+        "note": "Sunniest spot of an Artemis candidate region, on a steep crater rim",
         "name": "de Gerlache rim",
         "lon": 291.496,
         "lat": -88.313,

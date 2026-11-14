@@ -1,7 +1,7 @@
 import type { Site } from "./data";
 
 export interface SiteMenu {
-  render(current: string, chanceOf: (id: string) => number): void;
+  render(current: string, chanceOf: (id: string) => string): void;
 }
 
 export function siteMenu(sites: Site[], pick: (id: string) => void): SiteMenu {
@@ -58,7 +58,7 @@ export function siteMenu(sites: Site[], pick: (id: string) => void): SiteMenu {
       name.textContent = sites.find((site) => site.id === current)!.name;
       for (const option of options) {
         option.setAttribute("aria-selected", String(option.dataset.site === current));
-        option.querySelector(".option-chance")!.textContent = `${Math.round(100 * chanceOf(option.dataset.site!))}%`;
+        option.querySelector(".option-chance")!.textContent = chanceOf(option.dataset.site!);
       }
     },
   };

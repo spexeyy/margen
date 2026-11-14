@@ -5,8 +5,10 @@ export const SCATTER_M = 100;
 export const WINDOW_DAYS = 14;
 export const NEEDS_SUNLIGHT = 0.5;
 export const NEEDS_EARTH = 0.3;
+export const MAX_SLOPE_DEG = 10;
 export const GOOD_CHANCE = 0.9;
 const EDGE_MARGIN_M = 250;
+const NEARBY_M = 200;
 
 function scatter(count: number, sigma: number): Float32Array {
   let seed = 2026;
@@ -26,11 +28,53 @@ function scatter(count: number, sigma: number): Float32Array {
   return out;
 }
 
-export const offsets = scatter(LANDINGS, SCATTER_M);
+// Half of the landings fall inside the typical miss: the median radius of a 2D Gaussian is sigma * sqrt(2 ln 2).
+export const offsets = scatter(LANDINGS, SCATTER_M / Math.sqrt(2 * Math.LN2));
 
 export interface Window {
   sunlight: Float32Array;
   earth: Float32Array;
+  landingSun: Float32Array;
+  landingEarth: Float32Array;
+  // How far each spot is from failing its tightest requirement: 0 or more works.
+  margin: Float32Array;
+}
+
+// Whole percent, never 0% or 100% unless it is exactly that.
+export function percent(value: number): string {
+  const rounded = Math.round(100 * value);
+  return `${value > 0 && value < 1 ? Math.min(99, Math.max(1, rounded)) : rounded}%`;
+}
+
+export function gradient(ground: Int16Array, size: number, pixel: number, row: number, col: number): [number, number] {
+  const clamp = (i: number) => Math.min(size - 1, Math.max(0, i));
+  const rise = (r0: number, c0: number, r1: number, c1: number) =>
+    (ground[clamp(r1) * size + clamp(c1)] - ground[clamp(r0) * size + clamp(c0)]) /
+    (pixel * (clamp(r1) - clamp(r0) + clamp(c1) - clamp(c0)));
+  return [rise(row, col - 1, row, col + 1), rise(row - 1, col, row + 1, col)];
+}
+
+// For an aim at the center of a cell: where the landings fall, as [rows away, columns away, landings] triples.
+function spread(pixel: number): Int32Array {
+  const counts = new Map<number, number>();
+  for (let i = 0; i < LANDINGS; i++) {
+    const key = Math.floor(0.5 + offsets[2 * i + 1] / pixel) * 1024 + Math.floor(0.5 + offsets[2 * i] / pixel);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return Int32Array.from([...counts].flatMap(([key, count]) => [Math.round(key / 1024), key - 1024 * Math.round(key / 1024), count]));
+}
+
+// Sum of the cells within `radius` cells of each cell. Only valid at least `radius` cells from the edge of the map.
+function boxSum(values: Float32Array, size: number, radius: number): Float32Array {
+  const along = new Float32Array(values.length);
+  const out = new Float32Array(values.length);
+  for (let p = radius; p < values.length - radius; p++) {
+    for (let d = -radius; d <= radius; d++) along[p] += values[p + d];
+  }
+  for (let p = radius * size; p < values.length - radius * size; p++) {
+    for (let d = -radius; d <= radius; d++) out[p] += along[p + d * size];
+  }
+  return out;
 }
 
 export class Mission {
@@ -38,8 +82,10 @@ export class Mission {
   readonly pixel: number;
   readonly extent: number;
   readonly dates: number;
+  readonly slope: Float32Array;
   private readonly data: SiteData;
   private readonly masks: Uint8Array[] = [];
+  private readonly spread: Int32Array;
 
   constructor(data: SiteData, days: number) {
     this.data = data;
@@ -47,10 +93,12 @@ export class Mission {
     this.pixel = data.site.pixel;
     this.extent = this.size * this.pixel;
     this.dates = days - WINDOW_DAYS + 1;
-    for (let date = 0; date < this.dates; date++) {
-      const { sunlight, earth } = this.window(date);
-      this.masks.push(Uint8Array.from(sunlight, (s, p) => Number(s >= NEEDS_SUNLIGHT && earth[p] >= NEEDS_EARTH)));
-    }
+    this.spread = spread(this.pixel);
+    this.slope = Float32Array.from(data.ground, (_, p) => {
+      const [dx, dy] = gradient(data.ground, this.size, this.pixel, Math.floor(p / this.size), p % this.size);
+      return (Math.atan(Math.hypot(dx, dy)) * 180) / Math.PI;
+    });
+    for (let date = 0; date < this.dates; date++) this.masks.push(Uint8Array.from(this.window(date).margin, (m) => Number(m >= 0)));
   }
 
   window(date: number): Window {
@@ -64,7 +112,23 @@ export class Mission {
       }
     }
     const scale = 1 / (255 * WINDOW_DAYS);
-    return { sunlight: sunlight.map((v) => v * scale), earth: earth.map((v) => v * scale) };
+    const window = {
+      sunlight: sunlight.map((v) => v * scale),
+      earth: earth.map((v) => v * scale),
+      landingSun: Float32Array.from(this.data.sunlight.subarray(date * cells, (date + 1) * cells), (v) => v / 255),
+      landingEarth: Float32Array.from(this.data.earth.subarray(date * cells, (date + 1) * cells), (v) => v / 255),
+    };
+    const margin = window.sunlight.map(
+      (s, p) =>
+        Math.min(
+          s / NEEDS_SUNLIGHT,
+          window.landingSun[p] / NEEDS_SUNLIGHT,
+          window.earth[p] / NEEDS_EARTH,
+          window.landingEarth[p] / NEEDS_EARTH,
+          MAX_SLOPE_DEG / this.slope[p],
+        ) - 1,
+    );
+    return { ...window, margin };
   }
 
   clampAim(x: number, y: number): [number, number] {
@@ -96,18 +160,25 @@ export class Mission {
     const first = Math.ceil(EDGE_MARGIN_M / this.pixel);
     const last = this.size - first;
     const chances = new Float32Array(this.size * this.size);
+    const mask = this.masks[date];
+    const clamp = (i: number) => Math.min(this.size - 1, Math.max(0, i));
     for (let row = first; row < last; row++) {
       for (let col = first; col < last; col++) {
-        chances[row * this.size + col] = this.chance(date, (col + 0.5) * this.pixel, (row + 0.5) * this.pixel);
+        let works = 0;
+        for (let i = 0; i < this.spread.length; i += 3) {
+          works += this.spread[i + 2] * mask[clamp(row + this.spread[i]) * this.size + clamp(col + this.spread[i + 1])];
+        }
+        chances[row * this.size + col] = works / LANDINGS;
       }
     }
+    const radius = Math.round(NEARBY_M / this.pixel);
+    const nearby = boxSum(chances, this.size, radius);
+    const room = boxSum(this.window(date).margin, this.size, radius);
     for (let row = first; row < last; row++) {
       for (let col = first; col < last; col++) {
-        let neighbors = 0;
-        for (let dr = -2; dr <= 2; dr++) {
-          for (let dc = -2; dc <= 2; dc++) neighbors += chances[(row + dr) * this.size + col + dc];
-        }
-        const score = chances[row * this.size + col] + neighbors / 2500;
+        const p = row * this.size + col;
+        // Ties go to the aim whose surroundings work best, then to the one with the most room to spare in its requirements.
+        const score = chances[p] + nearby[p] / 1e7 + room[p] / 1e14;
         if (score > bestScore) {
           bestScore = score;
           best = [(col + 0.5) * this.pixel, (row + 0.5) * this.pixel];
@@ -121,12 +192,6 @@ export class Mission {
     let late = 0;
     while (date + late + 1 < this.dates && this.chance(date + late + 1, x, y) >= GOOD_CHANCE) late++;
     return late;
-  }
-
-  goodDates(x: number, y: number): number {
-    let count = 0;
-    for (let date = 0; date < this.dates; date++) count += Number(this.chance(date, x, y) >= GOOD_CHANCE);
-    return count;
   }
 
   nextGoodDate(date: number, x: number, y: number): number | null {
