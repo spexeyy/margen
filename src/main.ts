@@ -109,7 +109,7 @@ async function renderHorizon() {
   const cell = mission.cell(...state.aim);
   const codes = horizons.get(state.site)!.subarray(cell * index.horizon.count, (cell + 1) * index.horizon.count);
   const profile = Float32Array.from(codes, (code) => index.horizon.min + index.horizon.step * code);
-  const [lon, lat] = toLonLat(data.site.x0 + state.aim[0], data.site.y0 - state.aim[1]);
+  const [lon, lat] = aimLonLat();
   const observer = new Observer(lon, lat, data.ground[cell] + index.landerHeight);
   const hours = Array.from({ length: (index.days - state.date) * 24 }, (_, h) => state.date * 24 + h);
   const sun = withVisibility(profile, hours.map((h) => observer.look(ephemeris, h, SUN)));
@@ -239,6 +239,19 @@ function renderMap(mission: Mission, outcomes: Uint8Array) {
   });
 }
 
+function aimLonLat(): [number, number] {
+  const site = sites.find((s) => s.site.id === state.site)!.site;
+  return toLonLat(site.x0 + state.aim[0], site.y0 - state.aim[1]);
+}
+
+function renderAim(cell: number) {
+  const data = sites.find((s) => s.site.id === state.site)!;
+  const [lon, lat] = aimLonLat();
+  const [x, y] = [data.site.x0 + state.aim[0], data.site.y0 - state.aim[1]];
+  byId("aim-coords").textContent = `${Math.abs(lat).toFixed(4)}° ${lat < 0 ? "S" : "N"}, ${lon.toFixed(3)}° E`;
+  byId("aim-detail").textContent = `Ground ${data.ground[cell].toLocaleString("en-US")} m above the lunar reference sphere · ${(Math.hypot(x, y) / 1000).toFixed(1)} km from the south pole`;
+}
+
 function render() {
   const mission = missions.get(state.site)!;
   const outcomes = mission.outcomes(state.date, ...state.aim);
@@ -247,6 +260,7 @@ function render() {
   const cell = mission.cell(...state.aim);
 
   renderMap(mission, outcomes);
+  renderAim(cell);
   menu.render(state.site, (id) => missions.get(id)!.chance(state.date, ...bestAim(id, state.date)));
   byId("count").textContent = (chance * LANDINGS).toLocaleString("en-US");
   byId("summary").textContent = `${percent(chance)} chance the mission works. Sunlight ${percent(window.sunlight[cell])}, Earth in view ${percent(window.earth[cell])}.`;
@@ -336,6 +350,12 @@ mapCanvas.addEventListener("keydown", (event) => {
   const step = event.shiftKey ? 100 : 20;
   const mission = missions.get(state.site)!;
   update({ aim: mission.clampAim(state.aim[0] + move[0] * step, state.aim[1] + move[1] * step) });
+});
+byId("copy-aim").addEventListener("click", async () => {
+  const [lon, lat] = aimLonLat();
+  await navigator.clipboard.writeText(`${lat.toFixed(4)}, ${lon.toFixed(3)}`);
+  byId("copy-aim").textContent = "Copied";
+  setTimeout(() => (byId("copy-aim").textContent = "Copy"), 1500);
 });
 byId("best").addEventListener("click", () => update({ aim: bestAim(state.site, state.date) }));
 addEventListener("resize", render);
