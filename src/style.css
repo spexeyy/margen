@@ -180,9 +180,34 @@ h2 {
   border-right: 1px solid var(--line);
 }
 
-#map:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 2px;
+.map-frame {
+  position: relative;
+}
+
+.drag-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  background: var(--fg);
+  color: var(--bg);
+  pointer-events: none;
+}
+
+.map-chance {
+  display: none;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 18px;
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
 }
 
 #map {
@@ -227,6 +252,11 @@ h2 {
   background: var(--fail);
 }
 
+.swatch.ring {
+  border: 1.5px solid var(--fg);
+  border-radius: 50%;
+}
+
 .readout {
   grid-column: span 5;
   display: flex;
@@ -234,9 +264,40 @@ h2 {
   gap: 20px;
 }
 
-.eyebrow {
-  font-size: 14px;
-  color: var(--muted);
+.site-pick {
+  display: grid;
+  gap: 6px;
+}
+
+.site-pick select {
+  appearance: none;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--fg);
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238f8f8f' stroke-width='1.5'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 10px 40px 10px 12px;
+  cursor: pointer;
+}
+
+.site-pick select option {
+  background: var(--bg);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
 }
 
 .chance {
@@ -256,6 +317,12 @@ h2 {
   font-size: 14px;
   color: var(--muted);
   margin-top: -8px;
+  line-height: 1.5;
+}
+
+.caption strong {
+  color: var(--fg);
+  font-weight: 500;
 }
 
 .needs {
@@ -472,6 +539,13 @@ h2 {
   font-size: 13px;
 }
 
+.best.primary {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  font-weight: 500;
+}
+
 .calendar-panel,
 .horizon-panel,
 .sites-panel {
@@ -488,15 +562,24 @@ h2 {
 
 .calendar button {
   position: relative;
-  height: 40px;
+  height: 44px;
   padding: 0;
   border: none;
   border-radius: 2px;
-  background: color-mix(in srgb, var(--amber) calc(6% + 94% * var(--chance)), transparent);
+  background: var(--grid);
 }
 
-.calendar button:not(.good) {
-  background: color-mix(in srgb, var(--fg) calc(6% + 24% * var(--chance)), transparent);
+.calendar button::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(var(--chance) * 100%);
+  border-radius: 2px;
+  background: var(--muted);
+}
+
+.calendar button.good::after {
+  background: var(--amber);
 }
 
 .calendar button[aria-pressed="true"] {
@@ -612,6 +695,10 @@ h2 {
   color: var(--muted);
 }
 
+.card-fact {
+  font-size: 13px;
+}
+
 .card-source {
   font-size: 11px;
   color: var(--muted);
@@ -627,7 +714,35 @@ h2 {
   line-height: 1.6;
 }
 
+@media (pointer: coarse) {
+  .shifts button,
+  .slip,
+  .best,
+  .when button,
+  .theme button {
+    min-height: 44px;
+  }
+
+  .days button {
+    height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top {
+    padding: 12px 16px;
+  }
+
+  .top nav a[href="/"] {
+    display: none;
+  }
+}
+
 @media (max-width: 860px) {
+  .map-chance {
+    display: block;
+  }
+
   .map-panel,
   .readout {
     grid-column: 1 / -1;
@@ -657,6 +772,13 @@ h2 {
 
 .half + .half {
   border-left: 1px solid var(--line);
+}
+
+.verdict {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--good);
+  margin-bottom: 12px;
 }
 
 .checks {

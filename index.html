@@ -33,25 +33,33 @@
       <section class="intro">
         <h1>Miss the target. Keep the mission.</h1>
         <p>
-          No lander touches down exactly where it aims, and launches slip. Pick a site, a landing date and an aim point.
-          MARGEN drops 1,000 possible landings around your aim and checks each one against NASA terrain and JPL
-          ephemerides.
+          Will a lander near the Moon's south pole get sunlight and keep Earth in view, even if it lands off target or
+          launches late? Drag the aim on the map, change the landing date, and compare sites.
         </p>
       </section>
 
       <section class="map-panel">
-        <canvas id="map" tabindex="0" aria-label="Map of the landing site. Drag, or use the arrow keys, to move the aim point."></canvas>
+        <div class="map-frame">
+          <canvas id="map" tabindex="0" role="img" aria-label="Map of the landing site. Drag, or use the arrow keys, to move the aim point."></canvas>
+          <p class="drag-hint" id="drag-hint">Drag to move your aim</p>
+          <p class="map-chance" id="map-chance" aria-hidden="true"></p>
+        </div>
         <ul class="legend">
           <li><i class="swatch zone"></i>Enough sunlight and Earth in view for the first 14 days</li>
           <li><i class="swatch works"></i>Landing works</li>
           <li><i class="swatch fails"></i>Landing fails</li>
+          <li><i class="swatch ring"></i>100 m typical miss</li>
         </ul>
       </section>
 
       <aside class="readout">
-        <p class="eyebrow" id="site-name"></p>
+        <label class="site-pick">
+          <span class="field-label">Landing site</span>
+          <select id="site"></select>
+        </label>
         <p class="chance" id="chance"></p>
-        <p class="caption">Chance the mission works · out of 1,000 possible landings, 100 m typical miss</p>
+        <p class="caption"><strong>Chance the mission works.</strong> <span id="count"></span> of 1,000 possible landings work, with a 100 m typical miss.</p>
+        <p class="visually-hidden" aria-live="polite" id="summary"></p>
 
         <dl class="needs">
           <div>
@@ -94,6 +102,7 @@
 
       <section class="calendar-panel">
         <h2>Chance by landing date, same aim</h2>
+        <p class="note">Bar height is the chance the mission works. Amber: a good date, 90% or better.</p>
         <div class="calendar" id="calendar"></div>
       </section>
 
@@ -106,7 +115,7 @@
         <p class="events" id="events"></p>
 
         <h3>When they're up</h3>
-        <canvas id="timeline" aria-label="When the Sun and Earth are above the hills over the first 14 days. Drag to move through time."></canvas>
+        <canvas id="timeline" role="img" aria-label="When the Sun and Earth are above the hills over the first 14 days. Drag to move through time."></canvas>
         <div class="scrub">
           <label for="hour">Time after landing</label>
           <input type="range" id="hour" min="0" max="335" value="0" />
@@ -114,7 +123,7 @@
         </div>
 
         <h3>Where they are in the sky</h3>
-        <canvas id="sky" aria-label="Line of hills all around the aim point, with the paths of the Sun and Earth over the first 14 days"></canvas>
+        <canvas id="sky" role="img" aria-label="Line of hills all around the aim point, with the paths of the Sun and Earth over the first 14 days"></canvas>
         <p class="note">
           One dot per day. Heights are stretched so the hills show. From the Moon, Earth hangs almost still and slowly
           bobs up and down; the Sun circles the whole horizon once a month.

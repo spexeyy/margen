@@ -117,6 +117,18 @@ export class Mission {
     return best;
   }
 
+  slipDays(date: number, x: number, y: number): number {
+    let late = 0;
+    while (date + late + 1 < this.dates && this.chance(date + late + 1, x, y) >= GOOD_CHANCE) late++;
+    return late;
+  }
+
+  goodDates(x: number, y: number): number {
+    let count = 0;
+    for (let date = 0; date < this.dates; date++) count += Number(this.chance(date, x, y) >= GOOD_CHANCE);
+    return count;
+  }
+
   nextGoodDate(date: number, x: number, y: number): number | null {
     for (let later = date + 1; later < this.dates; later++) {
       if (this.chance(later, x, y) >= GOOD_CHANCE) return later;
