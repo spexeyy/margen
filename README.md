@@ -4,19 +4,24 @@
 
 Most tools ask whether a Moon landing site works if everything goes right. MARGEN asks whether it still works when things go wrong: when the lander comes down hundreds of meters off target, or the launch slips by a week. Then it finds the next good date.
 
-A landing works when, for the first 14 days:
+A landing works when:
 
-- **Sunlight** (powers the lander) reaches it at least 50% of the time;
-- **Earth is in view** (lets it talk to home) at least 30% of the time.
+- **The ground is flat** (keeps the lander upright): it slopes 10° or less;
+- **The Sun is up on landing day** (power from the first hours) at least 50% of the first 24 hours;
+- **Earth is in view on landing day** (contact from the first hours) at least 30% of the first 24 hours;
+- **Sunlight** (powers the lander) reaches it at least 50% of the first 14 days;
+- **Earth is in view** (lets it talk to home) at least 30% of the first 14 days.
 
-MARGEN simulates 1,000 landings scattered around the aim point (100 m typical miss) and reports the chance the mission works, for every site and landing date.
+MARGEN simulates 1,000 landings scattered around the aim point (100 m typical miss: half fall closer than that) and reports the chance the mission works, for every site and landing date.
+
+The sunniest spot is not always a landing spot. On January 15, 2027, the best aim on the Shackleton connecting ridge gives a 59% chance: its sunlit ground is a strip of flat terrain between steep slopes. Mons Mouton gives 100%, and still works if the landing slips six days.
 
 Built for the NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navigator", by team MARGEN (Buenos Aires).
 
 ## What you can do
 
-- **Pick a site** near the lunar south pole: Shackleton connecting ridge, Mons Mouton (where Athena landed), and two Artemis candidate regions (de Gerlache rim, Nobile rim). Each site card shows the chance the mission works on the chosen date.
-- **Drag the aim point** on a 2 × 2 km terrain map. The amber zone has enough sunlight and Earth in view; each dot is one possible landing.
+- **Pick a site** near the lunar south pole: Shackleton connecting ridge, Mons Mouton (where Athena landed), and two Artemis candidate regions (de Gerlache rim, Nobile rim). Each site card shows the chance the mission works on the chosen date, how many landing dates from January to March are good, and how much of the map is flat.
+- **Drag the aim point** on a 2 × 2 km terrain map. The amber zone is flat ground with enough sunlight and Earth in view; each dot is one possible landing.
 - **Change the landing date** (January to March 2027) or let the launch slip a week, and see the next good date.
 - **See what the lander sees:** the terrain horizon in every direction, the paths of the Sun and Earth over the next 14 days, and when they set. A spot a few hundred meters away can fail because the Sun hides behind a hill.
 - **Share any state** with a link: `?site=ridge&date=2027-01-15&aim=1630,1370`.
@@ -25,7 +30,7 @@ Built for the NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navi
 
 1. **Terrain.** For every 20 m spot in each 2 × 2 km site, `scripts/build_sites.py` traces the horizon in 360 directions across LOLA terrain (20 m nearby, 80 m out to 250 km), including the Moon's curvature.
 2. **Sky.** JPL DE440 (NAIF SPICE) gives the Sun and Earth every hour, 2027-01-01 to 2027-04-13. Sunlight counts the visible part of the Sun's disc; Earth in view needs Earth's center above the terrain. Solar panels and antenna sit 2 m above the ground.
-3. **Landings.** The browser scatters 1,000 landings around the aim and checks each against the 14-day requirement. Everything after step 2 runs in the browser; there is no server.
+3. **Landings.** The browser measures the slope of every spot across 40 m of the same terrain, scatters 1,000 landings around the aim and checks each against the five requirements. "Aim at the safest spot" picks the aim with the highest chance; among ties, the one whose surroundings within 200 m work best, then the one with the most room to spare in its requirements. Landing is at 00:00 UTC on the chosen date. Everything after step 2 runs in the browser; there is no server.
 
 ## Validation criteria
 
@@ -38,21 +43,25 @@ Written before any result was computed:
 
 ## Validation results
 
-From `scripts/validate.py`, shown on the validation page:
+From `scripts/validate.py`, shown on the validation page. Four of the five pass marks are met:
 
-| Check | Result |
-|---|---|
-| Sun and Earth vs JPL Horizons (2 sites, 12 times, both bodies) | 0.00003° worst |
-| Sunlight vs AVGVISIB (160 random spots, 85°S to the pole, 2008–2026) | mean difference 1.75 points, correlation 0.985 |
-| Earth in view vs AVGVISIB (same spots) | mean difference 1.16 points, correlation 0.982 |
-| Sun elevation at Athena's landing, 2025-03-06 17:28 UTC | 2.464°, JPL Horizons 2.464° |
-| Landing simulation | ±3.1 points worst case; the ±3 above was rounded down |
+| Check | Result | |
+|---|---|---|
+| Sun and Earth vs JPL Horizons (2 sites, 12 times, both bodies) | 0.00003° worst | Pass |
+| Sunlight vs AVGVISIB (160 random spots, 85°S to the pole, 2008–2026) | mean difference 1.75 points, correlation 0.985 | Pass |
+| Earth in view vs AVGVISIB (same spots) | mean difference 1.16 points, correlation 0.982 | Pass |
+| Sun elevation at Athena's landing, 2025-03-06 17:28 UTC | 2.464°, JPL Horizons 2.464° | Pass |
+| Landing simulation | ±3.1 points worst case | Fail, by 0.1 |
 
-At Athena's landing spot, the 20 m terrain puts the hills only 0.8° high in the Sun's direction: the small crater Athena landed in is below the map's resolution.
+What these checks do not cover:
+
+- The AVGVISIB comparison runs the method on the 80 m terrain, seen from the ground. The 20 m terrain the navigator uses near each site is not tested.
+- The Athena check tests the Sun's position only. On the 20 m terrain the hills rise 0.8° in the Sun's direction, so MARGEN would have called the spot sunlit. It was not: the small crater Athena landed in is below the map's resolution.
+- The chance the mission works, the slope limit and the landing-day rules have no NASA reference to check against.
 
 ## What it doesn't model
 
-Rocks, craters and slopes smaller than 20 m; lander tilt, dust, temperature and batteries; radio links and ground stations (Earth in view is line of sight only); light during descent; direction-dependent landing errors; terrain beyond 250 km.
+Rocks, craters and slopes smaller than 20 m (slope is measured across 40 m, so ground that passes can still be too steep for a lander); lander tilt, dust, temperature and batteries; how long the lander survives in the dark; radio links and ground stations (Earth in view is line of sight only); light during descent and landing times other than 00:00 UTC; direction-dependent landing errors and misses larger than 100 m; terrain beyond 250 km.
 
 ## Run it
 
@@ -74,14 +83,14 @@ python scripts/validate.py
 - NASA LRO LOLA south pole elevation models, 20 m and 80 m ([PGDA](https://pgda.gsfc.nasa.gov/products/90))
 - NASA LOLA average illumination and Earth visibility maps, AVGVISIB ([PGDA](https://pgda.gsfc.nasa.gov/products/69))
 - JPL DE440 ephemerides and lunar frames via [NAIF SPICE](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/), and [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/)
-- Site positions: Shackleton connecting ridge center (LPSC 2025 abstract 2443); Athena aim and landing point (LROC); Artemis candidate region centers (USGS), with each box placed on the best-lit spot within 5 km in AVGVISIB
+- Site positions: Shackleton connecting ridge center (LPSC 2025 abstract 2443); Athena aim and landing point (LROC); Artemis candidate region centers (USGS), with each box placed on the best-lit spot within 5 km in AVGVISIB. That choice ignored slope: the de Gerlache box sits on a steep crater rim with almost no flat ground, and no date works there
 - Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081.
 - Barker, M. K. et al. (2021). Improved LOLA elevation maps for south pole landing sites: error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119.
 - Software: NumPy, SciPy, SpiceyPy, tifffile, fsspec, Vite, TypeScript. Font: Geist (SIL Open Font License).
 
 ## AI use
 
-An AI coding assistant was used to help write code during the hackathon. All code, data processing and the demo video were produced during the hackathon, and every number was checked against NASA data. The video narration voice is AI-generated.
+An AI coding assistant was used to help write code during the hackathon. All code, data processing and the demo video were produced during the hackathon. The Sun and Earth positions and the long-term sunlight and Earth-in-view shares were checked against NASA data; the landing chances were not, as listed under Validation results. The video narration voice is AI-generated.
 
 ## License
 
