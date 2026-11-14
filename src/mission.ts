@@ -92,7 +92,7 @@ export class Mission {
 
   bestAim(date: number): [number, number] {
     let best: [number, number] = [this.extent / 2, this.extent / 2];
-    let bestScore = -1;
+    let bestScore = 0;
     const first = Math.ceil(EDGE_MARGIN_M / this.pixel);
     const last = this.size - first;
     const chances = new Float32Array(this.size * this.size);
