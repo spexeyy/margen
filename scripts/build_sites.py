@@ -88,11 +88,11 @@ def build(site, far, et):
 
     folder = OUT / site["id"]
     folder.mkdir(parents=True, exist_ok=True)
-    save(folder / "sunlight.u8.gz", np.round(sunlight * 255).astype(np.uint8))
-    save(folder / "earth.u8.gz", np.round(earth * 255).astype(np.uint8))
+    save(folder / "sunlight.u8.gzip", np.round(sunlight * 255).astype(np.uint8))
+    save(folder / "earth.u8.gzip", np.round(earth * 255).astype(np.uint8))
     encoded = np.round((horizon - HORIZON_MIN_DEG) / HORIZON_STEP_DEG)
-    save(folder / "horizon.u8.gz", np.clip(encoded, 0, 255).astype(np.uint8))
-    save(folder / "ground.i16.gz", np.round(ground).astype(np.int16))
+    save(folder / "horizon.u8.gzip", np.clip(encoded, 0, 255).astype(np.uint8))
+    save(folder / "ground.i16.gzip", np.round(ground).astype(np.int16))
     print(f"{site['id']}: {time.time() - start:.0f} s, ground {ground.min():.0f} to {ground.max():.0f} m")
     return site | {"x0": px[0] - near.size / 2, "y0": py[0] + near.size / 2, "pixel": near.size}
 
@@ -102,7 +102,7 @@ def main():
     et = hourly_et()
     sites = [build(site, far, et) for site in SITES]
     sun, earth = body_positions(et)
-    save(OUT / "ephemeris.f32.gz", np.hstack([sun, earth]).astype(np.float32))
+    save(OUT / "ephemeris.f32.gzip", np.hstack([sun, earth]).astype(np.float32))
     index = {
         "firstDay": FIRST_DAY,
         "days": DAYS,
