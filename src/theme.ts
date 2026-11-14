@@ -9,13 +9,15 @@ export function isLight(): boolean {
 }
 
 export function onThemeChange(render?: () => void): void {
-  const button = document.getElementById("theme")!;
-  const label = () => button.setAttribute("aria-label", `Switch to ${isLight() ? "dark" : "light"} mode`);
-  label();
-  button.addEventListener("click", () => {
-    root.dataset.theme = isLight() ? "dark" : "light";
-    localStorage.setItem("theme", root.dataset.theme);
-    label();
-    render?.();
-  });
+  const choices = document.querySelectorAll<HTMLButtonElement>("[data-theme-choice]");
+  const mark = () => choices.forEach((b) => b.setAttribute("aria-checked", String(b.dataset.themeChoice === root.dataset.theme)));
+  mark();
+  for (const choice of choices) {
+    choice.addEventListener("click", () => {
+      root.dataset.theme = choice.dataset.themeChoice;
+      localStorage.setItem("theme", root.dataset.theme!);
+      mark();
+      render?.();
+    });
+  }
 }
