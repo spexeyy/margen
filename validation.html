@@ -34,7 +34,8 @@
         <h1>Checked against NASA</h1>
         <p>
           MARGEN's numbers come from NASA's laser-measured lunar terrain and JPL's planetary ephemerides. Before computing
-          any result, we wrote down what agreeing with NASA would mean. This is how it went.
+          any result, we wrote down what agreeing with NASA would mean. This is how it went, including the mark we
+          missed. The chance the mission works has no NASA reference to check against: only its inputs are tested here.
         </p>
       </section>
 
@@ -63,7 +64,9 @@
         <p class="note">
           Each dot is one of 160 random spots between 85°S and the south pole, averaged from 2008 to 2026, a full 18.6-year
           cycle of the Moon's orbit. Across: NASA's long-term maps (LOLA AVGVISIB, PGDA). Up:
-          MARGEN, with the same terrain and JPL DE440. On the diagonal, the two agree. NASA counts Earth in view when any
+          MARGEN's method on NASA's 80 m terrain and JPL DE440, seen from the ground. The navigator adds 20 m terrain
+          near each site and a 2 m lander; that finer terrain is not tested here. On the diagonal, the two agree. NASA
+          counts Earth in view when any
           part of Earth shows; MARGEN does the same here, and in the navigator it asks for Earth's center, which is
           stricter. A few spots differ by more than 10 points, likely on steep slopes and rims where small terrain
           details decide whether the Sun or Earth clears the horizon.
@@ -89,9 +92,11 @@
             the terrain. Solar panels and antenna sit 2 m above the ground.
           </li>
           <li>
-            <strong>Landings.</strong> 1,000 landing points scatter around the aim with a 100 m typical miss. A landing
-            works if, for its first 14 days, sunlight reaches it at least 50% of the time and Earth is in view at least
-            30% of the time. With 1,000 landings the chance is accurate to ±3.1 points or better (95%).
+            <strong>Landings.</strong> 1,000 landing points scatter around the aim with a 100 m typical miss: half fall
+            closer than that. A landing works if the ground slopes 10° or less across 40 m; in its first 24 hours the Sun is up
+            at least 50% of the time and Earth is in view at least 30%; and over its first 14 days it meets the same
+            two shares. Landing is at 00:00 UTC. With 1,000 landings the chance is accurate to
+            ±3.1 points or better (95%).
           </li>
         </ol>
       </section>
@@ -99,11 +104,18 @@
       <section class="half prose">
         <h2>What it doesn't model</h2>
         <ul>
-          <li>Rocks, small craters and slopes smaller than the 20 m map spots. Athena's crater is one of them.</li>
+          <li>
+            Rocks, small craters and slopes smaller than the 20 m map spots. Athena's crater is one of them. Slope is
+            measured across 40 m, so ground that passes can still be too steep at the scale of a lander.
+          </li>
           <li>Lander tilt, dust, temperature and batteries.</li>
           <li>Radio links. Earth in view is a clear line to Earth; it does not check antennas or ground stations.</li>
-          <li>Light during the descent.</li>
-          <li>Real landing errors are not the same in every direction. MARGEN uses a 100 m typical miss.</li>
+          <li>Light during the descent, and landing times other than 00:00 UTC.</li>
+          <li>How long the lander survives in the dark. The sunlight needs are shares of time, not unbroken hours.</li>
+          <li>
+            Real landing errors are not the same in every direction, and some recent landers have missed by more. MARGEN
+            uses a 100 m typical miss in every direction.
+          </li>
           <li>Terrain more than 250 km away.</li>
         </ul>
       </section>

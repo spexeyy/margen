@@ -1,6 +1,7 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./style.css";
+import { LANDINGS } from "./mission";
 import { onThemeChange } from "./theme";
 
 interface Summary {
@@ -56,21 +57,25 @@ function passes(summary: Summary): boolean {
 const { sunlight, earth, points } = result.avgvisib;
 const athena = result.athena;
 const athenaGap = Math.abs(athena.sunElevation - athena.horizonsSunElevation);
+// Widest 95% interval of a chance estimated from this many landings, in points: at a true chance of 50%.
+const simulationError = 196 * Math.sqrt(0.25 / LANDINGS);
 
 const verdicts = [
   result.ephemerisMaxError < 0.01,
   passes(sunlight),
   passes(earth),
   athenaGap < 0.05,
+  simulationError <= 3,
 ];
 const passed = verdicts.filter(Boolean).length;
 byId("verdict").textContent = passed === verdicts.length ? `All ${passed} checks pass.` : `${passed} of ${verdicts.length} checks pass.`;
 
 byId("checks").innerHTML = [
   row("Sun and Earth positions vs JPL Horizons", "Within 0.01°", `${result.ephemerisMaxError}° worst`, verdicts[0]),
-  row("Sunlight vs NASA long-term map", "Mean difference under 3 points, correlation above 0.95", `${sunlight.meanDifference} points, ${sunlight.correlation}`, verdicts[1]),
-  row("Earth in view vs NASA long-term map", "Mean difference under 3 points, correlation above 0.95", `${earth.meanDifference} points, ${earth.correlation}`, verdicts[2]),
-  row("Sun height at Athena's landing vs JPL Horizons", "Within 0.05°", `${athena.sunElevation}° vs ${athena.horizonsSunElevation}°`, verdicts[3]),
+  row("Sunlight vs NASA long-term map, on 80 m terrain", "Mean difference under 3 points, correlation above 0.95", `${sunlight.meanDifference} points, ${sunlight.correlation}`, verdicts[1]),
+  row("Earth in view vs NASA long-term map, on 80 m terrain", "Mean difference under 3 points, correlation above 0.95", `${earth.meanDifference} points, ${earth.correlation}`, verdicts[2]),
+  row("Sun's position at Athena's landing vs JPL Horizons. Not whether Athena had sunlight: see below", "Within 0.05°", `${athena.sunElevation}° vs ${athena.horizonsSunElevation}°`, verdicts[3]),
+  row(`Landing simulation: 95% interval of the chance from ${LANDINGS.toLocaleString("en-US")} landings`, "Within ±3 points", `±${simulationError.toFixed(1)} points worst case`, verdicts[4]),
 ].join("");
 
 byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "sun", "Sunlight");
@@ -82,8 +87,9 @@ byId("athena").textContent =
   `On March 6, 2025 at 17:28 UTC, the Athena lander touched down on Mons Mouton a few hundred meters from its aim ` +
   `and ended up on its side in a small crater. MARGEN puts the Sun ${athena.sunElevation.toFixed(2)}° above a level ` +
   `horizon at that moment; JPL Horizons gives ${athena.horizonsSunElevation.toFixed(2)}°. In the Sun's direction, ` +
-  `the hills on the 20 m terrain map rise only ${athena.terrainHorizon.toFixed(1)}°, so the map shows the spot in ` +
-  `sunlight. The crater Athena landed in is about 20 m across, too small for the map to see. That is a limit of ` +
-  `this kind of data, and it is listed below.`;
+  `the hills on the 20 m terrain map rise only ${athena.terrainHorizon.toFixed(1)}°, so MARGEN would have called ` +
+  `this spot sunlit. It was not. The crater Athena landed in is about 20 m across, too small for the map to see. ` +
+  `The check above only tests where the Sun was, and MARGEN gets that right; it gets the outcome wrong. That is a ` +
+  `limit of this kind of data, and it is listed below.`;
 
 onThemeChange();
