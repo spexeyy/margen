@@ -3,11 +3,12 @@ import "@fontsource-variable/geist-mono";
 import "./style.css";
 import { loadEphemeris, loadHorizons, loadIndex, loadSite } from "./data";
 import { datePicker } from "./datePicker";
-import { drawHorizon, hoursUntilChange } from "./horizon";
-import { drawMap, onAim, shade, zone } from "./map";
+import { drawSky, drawTimeline, hoursUntilChange, withVisibility } from "./horizon";
+import type { Seen, Sky } from "./horizon";
+import { drawMap, onDrag, shade, zone } from "./map";
 import { GOOD_CHANCE, LANDINGS, Mission, NEEDS_EARTH, NEEDS_SUNLIGHT, WINDOW_DAYS } from "./mission";
 import type { Window } from "./mission";
-import { EARTH, Observer, SUN, toLonLat, toXY } from "./sky";
+import { EARTH, Observer, SUN, horizonAt, toLonLat, toXY } from "./sky";
 import { isLight, onThemeChange } from "./theme";
 
 const DAY_MS = 86400000;
@@ -29,7 +30,11 @@ const percent = (value: number) => `${Math.round(100 * value)}%`;
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const mapCanvas = byId<HTMLCanvasElement>("map");
-const horizonCanvas = byId<HTMLCanvasElement>("horizon");
+const timelineCanvas = byId<HTMLCanvasElement>("timeline");
+const skyCanvas = byId<HTMLCanvasElement>("sky");
+const hourInput = byId<HTMLInputElement>("hour");
+const hourLabel = byId("hour-label");
+let skyView: Sky | null = null;
 const calendar = byId("calendar");
 const cards = byId("cards");
 
@@ -101,18 +106,43 @@ async function renderHorizon() {
   const [lon, lat] = toLonLat(data.site.x0 + state.aim[0], data.site.y0 - state.aim[1]);
   const observer = new Observer(lon, lat, data.ground[cell] + index.landerHeight);
   const hours = Array.from({ length: (index.days - state.date) * 24 }, (_, h) => state.date * 24 + h);
-  const sun = hours.map((h) => observer.look(ephemeris, h, SUN));
-  const earth = hours.map((h) => observer.look(ephemeris, h, EARTH));
-  const sunEvent = hoursUntilChange(profile, sun);
-  const earthEvent = hoursUntilChange(profile, earth);
+  const sun = withVisibility(profile, hours.map((h) => observer.look(ephemeris, h, SUN)));
+  const earth = withVisibility(profile, hours.map((h) => observer.look(ephemeris, h, EARTH)));
+  const sunEvent = hoursUntilChange(sun);
+  const earthEvent = hoursUntilChange(earth);
+  const clearance = sun[0].el - horizonAt(profile, sun[0].az);
+  const hills = `${Math.abs(clearance).toFixed(1)}° ${clearance >= 0 ? "above" : "below"} the hills`;
   byId("events").textContent = [
     event("Sun", sunEvent.up, sunEvent.hours),
     event("Earth", earthEvent.up, earthEvent.hours),
-    `Sun elevation ${sun[0].el.toFixed(1)}°`,
+    `Sun elevation ${sun[0].el.toFixed(1)}°, ${hills}`,
   ].join(" · ");
-  fitCanvas(horizonCanvas);
   const span = WINDOW_DAYS * 24;
-  drawHorizon(horizonCanvas, { profile, sun: sun.slice(0, span), earth: earth.slice(0, span) });
+  skyView = { profile, sun: sun.slice(0, span), earth: earth.slice(0, span) };
+  drawSkyViews();
+}
+
+function drawSkyViews() {
+  if (!skyView) return;
+  const hour = Number(hourInput.value);
+  const window = windowOf(state.site, state.date);
+  const cell = missions.get(state.site)!.cell(...state.aim);
+  fitCanvas(timelineCanvas);
+  fitCanvas(skyCanvas);
+  drawTimeline(
+    timelineCanvas,
+    [
+      { label: "Sunlight", share: `${percent(window.sunlight[cell])} of the time · needs 50%`, path: skyView.sun, fill: "amber" },
+      { label: "Earth in view", share: `${percent(window.earth[cell])} of the time · needs 30%`, path: skyView.earth, fill: "earth" },
+    ],
+    hour,
+    [label(state.date), label(state.date + 7), label(state.date + WINDOW_DAYS)],
+  );
+  drawSky(skyCanvas, skyView, hour);
+  const where = (p: Seen) => (p.visible ? "above the hills" : "behind the hills");
+  const moment = new Date(firstDay + (state.date * 24 + hour) * 3600000);
+  const when = `${moment.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}, ${moment.toISOString().slice(11, 16)} UTC`;
+  hourLabel.textContent = `Day ${(hour / 24).toFixed(1)} · ${when} · Sun ${where(skyView.sun[hour])}, Earth ${where(skyView.earth[hour])}`;
 }
 
 function renderCalendar(mission: Mission, chances: number[]) {
@@ -215,6 +245,7 @@ function update(change: Partial<typeof state>) {
   const dateChanged = change.date !== undefined && change.date !== state.date;
   const siteChanged = change.site !== undefined && change.site !== state.site;
   Object.assign(state, change);
+  if (dateChanged || siteChanged) hourInput.value = "0";
   render();
   if (dateChanged || siteChanged) renderCards();
 }
@@ -230,7 +261,12 @@ calendar.addEventListener("click", (event) => {
   const date = (event.target as HTMLElement).dataset.date;
   if (date !== undefined) update({ date: Number(date) });
 });
-onAim(mapCanvas, (fx, fy) => {
+onDrag(timelineCanvas, (fx) => {
+  hourInput.value = String(Math.round(fx * Number(hourInput.max)));
+  drawSkyViews();
+});
+hourInput.addEventListener("input", drawSkyViews);
+onDrag(mapCanvas, (fx, fy) => {
   const mission = missions.get(state.site)!;
   update({ aim: mission.clampAim(fx * mission.extent, fy * mission.extent) });
 });

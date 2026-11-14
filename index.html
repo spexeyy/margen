@@ -98,17 +98,26 @@
       </section>
 
       <section class="horizon-panel">
-        <h2>What the lander sees from the aim point</h2>
+        <h2>From the landing spot: first 14 days</h2>
         <p class="lede">
-          Stand at the aim point and turn around once. The gray shape is the skyline of hills. The lander has power
-          while the Sun is above it, and can talk to home while Earth is above it.
+          Stand at the aim point and look all the way around. Gray is the line of hills. The lander has power while the
+          Sun is above the hills, and can talk to home while Earth is above them.
         </p>
         <p class="events" id="events"></p>
-        <canvas id="horizon" aria-label="Skyline around the aim point with the paths of the Sun and Earth over the first 14 days, and when each one is in view"></canvas>
+
+        <h3>When they're up</h3>
+        <canvas id="timeline" aria-label="When the Sun and Earth are above the hills over the first 14 days. Drag to move through time."></canvas>
+        <div class="scrub">
+          <label for="hour">Time after landing</label>
+          <input type="range" id="hour" min="0" max="335" value="0" />
+          <output id="hour-label" for="hour"></output>
+        </div>
+
+        <h3>Where they are in the sky</h3>
+        <canvas id="sky" aria-label="Line of hills all around the aim point, with the paths of the Sun and Earth over the first 14 days"></canvas>
         <p class="note">
-          Top: the skyline in every direction, with where the Sun and Earth move over the first 14 days (one dot per
-          day, faint where hidden behind hills). Bottom: when each one is in view. Heights are stretched to make the
-          skyline readable.
+          One dot per day. Heights are stretched so the hills show. From the Moon, Earth hangs almost still and slowly
+          bobs up and down; the Sun circles the whole horizon once a month.
         </p>
       </section>
 

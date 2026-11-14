@@ -113,10 +113,11 @@ export function drawMap(canvas: HTMLCanvasElement, view: MapView): void {
   ctx.fillText("500 m", 16 * unit, width - 28 * unit);
 }
 
-export function onAim(canvas: HTMLCanvasElement, move: (fx: number, fy: number) => void): void {
+export function onDrag(canvas: HTMLCanvasElement, move: (fx: number, fy: number) => void): void {
   const aimAt = (event: PointerEvent) => {
     const box = canvas.getBoundingClientRect();
-    move((event.clientX - box.left) / box.width, (event.clientY - box.top) / box.height);
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    move(clamp((event.clientX - box.left) / box.width), clamp((event.clientY - box.top) / box.height));
   };
   canvas.addEventListener("pointerdown", (event) => {
     canvas.setPointerCapture(event.pointerId);
