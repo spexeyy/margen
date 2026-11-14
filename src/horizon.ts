@@ -1,5 +1,6 @@
 import { above } from "./sky";
 import type { Position } from "./sky";
+import { color } from "./theme";
 
 export interface Sky {
   profile: Float32Array;
@@ -7,8 +8,6 @@ export interface Sky {
   earth: Position[];
 }
 
-const SUN_COLOR = "#ffb224";
-const EARTH_COLOR = "#3ea8ff";
 const LABELS: [number, string][] = [[0, "N"], [90, "E"], [180, "S"], [270, "W"], [360, "N"]];
 
 function track(ctx: CanvasRenderingContext2D, sky: Sky, path: Position[], color: string, toX: (az: number) => number, toY: (el: number) => number) {
@@ -63,12 +62,12 @@ export function drawHorizon(canvas: HTMLCanvasElement, sky: Sky): void {
   ctx.font = '11px "Geist Variable", sans-serif';
   ctx.lineWidth = 1;
   for (let el = low; el <= high; el += step) {
-    ctx.strokeStyle = el === 0 ? "#3a3a3a" : "#161616";
+    ctx.strokeStyle = color(el === 0 ? "grid-zero" : "grid");
     ctx.beginPath();
     ctx.moveTo(left, toY(el));
     ctx.lineTo(width, toY(el));
     ctx.stroke();
-    ctx.fillStyle = "#6f6f6f";
+    ctx.fillStyle = color("muted");
     ctx.fillText(`${el}°`, 0, toY(el) + 4);
   }
   for (const [az, label] of LABELS) ctx.fillText(label, Math.min(width - 10, toX(az) - 3), height - 6);
@@ -77,8 +76,8 @@ export function drawHorizon(canvas: HTMLCanvasElement, sky: Sky): void {
   ctx.beginPath();
   ctx.rect(left, 0, width - left, bottom);
   ctx.clip();
-  ctx.fillStyle = "#111111";
-  ctx.strokeStyle = "#8f8f8f";
+  ctx.fillStyle = color("terrain");
+  ctx.strokeStyle = color("terrain-edge");
   ctx.beginPath();
   ctx.moveTo(toX(0), bottom);
   for (let az = 0; az <= 360; az++) ctx.lineTo(toX(az), toY(sky.profile[az % 360]));
@@ -88,10 +87,10 @@ export function drawHorizon(canvas: HTMLCanvasElement, sky: Sky): void {
   ctx.stroke();
   ctx.restore();
 
-  track(ctx, sky, sky.earth, EARTH_COLOR, toX, toY);
-  track(ctx, sky, sky.sun, SUN_COLOR, toX, toY);
-  disc(ctx, sky, sky.earth[0], EARTH_COLOR, "Earth", toX, toY, perDegree);
-  disc(ctx, sky, sky.sun[0], SUN_COLOR, "Sun", toX, toY, perDegree);
+  track(ctx, sky, sky.earth, color("earth"), toX, toY);
+  track(ctx, sky, sky.sun, color("amber"), toX, toY);
+  disc(ctx, sky, sky.earth[0], color("earth"), "Earth", toX, toY, perDegree);
+  disc(ctx, sky, sky.sun[0], color("amber"), "Sun", toX, toY, perDegree);
 }
 
 export function hoursUntilChange(profile: Float32Array, path: Position[]): { up: boolean; hours: number | null } {

@@ -7,15 +7,17 @@ import { drawMap, onAim, shade, zone } from "./map";
 import { GOOD_CHANCE, LANDINGS, Mission, NEEDS_EARTH, NEEDS_SUNLIGHT, WINDOW_DAYS } from "./mission";
 import type { Window } from "./mission";
 import { EARTH, Observer, SUN, toLonLat, toXY } from "./sky";
+import { isLight, onThemeChange } from "./theme";
 
 const DAY_MS = 86400000;
 
 const index = await loadIndex();
 const [ephemeris, sites] = await Promise.all([loadEphemeris(), Promise.all(index.sites.map(loadSite))]);
 const missions = new Map(sites.map((data) => [data.site.id, new Mission(data, index.days)]));
-const shades = new Map(sites.map((data) => [data.site.id, shade(data.ground, index.size, data.site.pixel)]));
+const shades = new Map<string, HTMLCanvasElement>();
 const horizons = new Map<string, Uint8Array>();
-const windows = new Map<string, { window: Window; zone: HTMLCanvasElement }>();
+const windows = new Map<string, Window>();
+const zones = new Map<string, HTMLCanvasElement>();
 const bestAims = new Map<string, [number, number]>();
 
 const firstDay = Date.parse(`${index.firstDay}T00:00:00Z`);
@@ -39,13 +41,23 @@ function bestAim(site: string, date: number): [number, number] {
   return bestAims.get(key)!;
 }
 
-function windowOf(site: string, date: number) {
+function windowOf(site: string, date: number): Window {
   const key = `${site}:${date}`;
-  if (!windows.has(key)) {
-    const window = missions.get(site)!.window(date);
-    windows.set(key, { window, zone: zone(window, index.size) });
-  }
+  if (!windows.has(key)) windows.set(key, missions.get(site)!.window(date));
   return windows.get(key)!;
+}
+
+function zoneOf(site: string, date: number): HTMLCanvasElement {
+  const key = `${site}:${date}:${isLight()}`;
+  if (!zones.has(key)) zones.set(key, zone(windowOf(site, date), index.size));
+  return zones.get(key)!;
+}
+
+function shadeOf(site: string): HTMLCanvasElement {
+  const key = `${site}:${isLight()}`;
+  const data = sites.find((s) => s.site.id === site)!;
+  if (!shades.has(key)) shades.set(key, shade(data.ground, index.size, data.site.pixel));
+  return shades.get(key)!;
 }
 
 function readUrl() {
@@ -167,8 +179,8 @@ function renderMap(mission: Mission, outcomes: Uint8Array) {
     : null;
   fitCanvas(mapCanvas);
   drawMap(mapCanvas, {
-    shade: shades.get(state.site)!,
-    zone: windowOf(state.site, state.date).zone,
+    shade: shadeOf(state.site),
+    zone: zoneOf(state.site, state.date),
     extent: mission.extent,
     aim: state.aim,
     outcomes,
@@ -180,7 +192,7 @@ function render() {
   const mission = missions.get(state.site)!;
   const outcomes = mission.outcomes(state.date, ...state.aim);
   const chance = outcomes.reduce((sum, v) => sum + v, 0) / LANDINGS;
-  const { window } = windowOf(state.site, state.date);
+  const window = windowOf(state.site, state.date);
   const cell = mission.cell(...state.aim);
 
   renderMap(mission, outcomes);
@@ -228,6 +240,7 @@ onAim(mapCanvas, (fx, fy) => {
 });
 byId("best").addEventListener("click", () => update({ aim: bestAim(state.site, state.date) }));
 addEventListener("resize", render);
+onThemeChange(render);
 
 readUrl();
 render();

@@ -1,6 +1,7 @@
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./style.css";
+import { onThemeChange } from "./theme";
 
 interface Summary {
   meanDifference: number;
@@ -21,7 +22,7 @@ const TICKS = [0, 25, 50, 75, 100];
 const result: Validation = await (await fetch("/data/validation.json")).json();
 const byId = (id: string) => document.getElementById(id)!;
 
-function scatter(pairs: [number, number][], color: string, name: string): string {
+function scatter(pairs: [number, number][], kind: "sun" | "earth", name: string): string {
   const at = (v: number) => PAD + ((SIZE - PAD - 12) * v) / 100;
   const flip = (v: number) => SIZE - at(v);
   const grid = TICKS.map(
@@ -32,7 +33,7 @@ function scatter(pairs: [number, number][], color: string, name: string): string
       `<text x="${PAD - 8}" y="${flip(t) + 4}" text-anchor="end">${t}%</text>`,
   ).join("");
   const dots = pairs
-    .map(([nasa, ours]) => `<circle cx="${at(nasa)}" cy="${flip(ours)}" r="4" fill="${color}"><title>${name} · NASA ${nasa.toFixed(1)}% · MARGEN ${ours.toFixed(1)}%</title></circle>`)
+    .map(([nasa, ours]) => `<circle cx="${at(nasa)}" cy="${flip(ours)}" r="4" class="${kind}"><title>${name} · NASA ${nasa.toFixed(1)}% · MARGEN ${ours.toFixed(1)}%</title></circle>`)
     .join("");
   return `<svg viewBox="0 0 ${SIZE} ${SIZE}" role="img" aria-label="${name}: MARGEN against NASA for 160 spots">
     ${grid}
@@ -63,8 +64,8 @@ byId("checks").innerHTML = [
   row("Sun height at Athena's landing vs JPL Horizons", "Within 0.05°", `${athena.sunElevation}° vs ${athena.horizonsSunElevation}°`, athenaGap < 0.05),
 ].join("");
 
-byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "#ffb224", "Sunlight");
-byId("earth-chart").innerHTML = scatter(points.map((p) => [100 * p[5], 100 * p[4]]), "#3ea8ff", "Earth in view");
+byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "sun", "Sunlight");
+byId("earth-chart").innerHTML = scatter(points.map((p) => [100 * p[5], 100 * p[4]]), "earth", "Earth in view");
 byId("sunlight-stat").textContent = `Mean difference ${sunlight.meanDifference} points · correlation ${sunlight.correlation}`;
 byId("earth-stat").textContent = `Mean difference ${earth.meanDifference} points · correlation ${earth.correlation}`;
 
@@ -75,3 +76,5 @@ byId("athena").textContent =
   `the hills on the 20 m terrain map rise only ${athena.terrainHorizon.toFixed(1)}°, so the map shows the spot in ` +
   `sunlight. The crater Athena landed in is about 20 m across, too small for the map to see. That is a limit of ` +
   `this kind of data, and it is listed below.`;
+
+onThemeChange();

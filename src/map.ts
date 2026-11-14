@@ -1,8 +1,8 @@
 import { LANDINGS, NEEDS_EARTH, NEEDS_SUNLIGHT, SCATTER_M, offsets } from "./mission";
 import type { Window } from "./mission";
+import { color, isLight } from "./theme";
 
 const DETAIL = 6;
-const AMBER = [255, 178, 36];
 const LIGHT_ELEVATION = 0.6;
 const LIGHT = [-Math.SQRT1_2 * Math.cos(LIGHT_ELEVATION), -Math.SQRT1_2 * Math.cos(LIGHT_ELEVATION), Math.sin(LIGHT_ELEVATION)];
 
@@ -24,6 +24,7 @@ function canvasOf(size: number): [HTMLCanvasElement, CanvasRenderingContext2D, I
 
 export function shade(ground: Int16Array, size: number, pixel: number): HTMLCanvasElement {
   const [canvas, ctx, image] = canvasOf(size);
+  const [base, range] = isLight() ? [150, 100] : [10, 115];
   const at = (r: number, c: number) => ground[Math.min(size - 1, Math.max(0, r)) * size + Math.min(size - 1, Math.max(0, c))];
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
@@ -31,7 +32,7 @@ export function shade(ground: Int16Array, size: number, pixel: number): HTMLCanv
       const dy = (at(r + 1, c) - at(r - 1, c)) / (2 * pixel);
       const norm = Math.hypot(dx, dy, 1);
       const lit = Math.max(0, (-dx * LIGHT[0] - dy * LIGHT[1] + LIGHT[2]) / norm);
-      const gray = 10 + 115 * lit;
+      const gray = base + range * lit;
       image.data.set([gray, gray, gray, 255], (r * size + c) * 4);
     }
   }
@@ -56,12 +57,13 @@ export function zone(window: Window, size: number): HTMLCanvasElement {
       field[y * fine + x] = top * (1 - fv) + bottom * fv;
     }
   }
+  const amber = [1, 3, 5].map((i) => parseInt(color("amber").slice(i, i + 2), 16));
   const [canvas, ctx, image] = canvasOf(fine);
   for (let p = 0; p < field.length; p++) {
     if (field[p] < 0) continue;
     const x = p % fine;
     const edge = x === 0 || x === fine - 1 || field[p - 1] < 0 || field[p + 1] < 0 || field[p - fine] < 0 || field[p + fine] < 0;
-    image.data.set([...AMBER, edge ? 255 : 56], p * 4);
+    image.data.set([...amber, edge ? 255 : 56], p * 4);
   }
   ctx.putImageData(image, 0, 0);
   return canvas;
@@ -72,19 +74,20 @@ export function drawMap(canvas: HTMLCanvasElement, view: MapView): void {
   const width = canvas.width;
   const scale = width / view.extent;
   const unit = width / 600;
+  const [works, fails, fg, earth] = ["works", "fail", "fg", "earth"].map(color);
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(view.shade, 0, 0, width, width);
   ctx.drawImage(view.zone, 0, 0, width, width);
 
   const [ax, ay] = view.aim;
   for (let i = 0; i < LANDINGS; i++) {
-    ctx.fillStyle = view.outcomes[i] ? "#ffffff" : "#ff5b4f";
+    ctx.fillStyle = view.outcomes[i] ? works : fails;
     const x = (ax + offsets[2 * i]) * scale;
     const y = (ay + offsets[2 * i + 1]) * scale;
     ctx.fillRect(x - unit, y - unit, 2 * unit, 2 * unit);
   }
 
-  ctx.strokeStyle = "#ffffff";
+  ctx.strokeStyle = fg;
   ctx.lineWidth = 1.5 * unit;
   ctx.beginPath();
   ctx.arc(ax * scale, ay * scale, SCATTER_M * scale, 0, 2 * Math.PI);
@@ -98,14 +101,14 @@ export function drawMap(canvas: HTMLCanvasElement, view: MapView): void {
   if (view.marker) {
     const mx = view.marker.x * scale;
     const my = view.marker.y * scale;
-    ctx.strokeStyle = "#3ea8ff";
+    ctx.strokeStyle = earth;
     ctx.strokeRect(mx - 5 * unit, my - 5 * unit, 10 * unit, 10 * unit);
-    ctx.fillStyle = "#3ea8ff";
+    ctx.fillStyle = earth;
     ctx.fillText(view.marker.label, mx + 10 * unit, my + 4 * unit);
   }
 
   const bar = 500 * scale;
-  ctx.fillStyle = "#ededed";
+  ctx.fillStyle = fg;
   ctx.fillRect(16 * unit, width - 20 * unit, bar, 2 * unit);
   ctx.fillText("500 m", 16 * unit, width - 28 * unit);
 }
