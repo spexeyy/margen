@@ -11,7 +11,7 @@ from moon import RAW, body_positions, horizons, read_raster, read_window, to_lon
 OUT = Path(__file__).resolve().parents[1] / "public" / "data"
 DEM_20M = "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_20MPP_ADJ.TIF"
 FIRST_DAY = "2027-01-01"
-DAYS = 105
+DAYS = 103
 SIZE = 100
 NEAR_HALF_M = 12000
 LANDER_HEIGHT_M = 2.0
@@ -31,6 +31,7 @@ SITES = [
         "lon": 29.13,
         "lat": -84.78,
         "source": "Athena (IM-2) aim point, LROC",
+        "landed": {"lon": 29.1957, "lat": -84.7906, "label": "Athena landed here, 2025"},
     },
     {
         "id": "gerlache",

@@ -129,8 +129,8 @@ function renderWhen(mission: Mission, chance: number) {
   if (chance >= GOOD_CHANCE) {
     let late = 0;
     while (state.date + late + 1 < mission.dates && mission.chance(state.date + late + 1, ...state.aim) >= GOOD_CHANCE) late++;
-    const margin = late === 0 ? "Only if you land on time" : `Up to ${late} ${late === 1 ? "day" : "days"} late`;
-    box.innerHTML = `<span>Still works if you land</span><strong>${margin}</strong>`;
+    const margin = late === 0 ? "Works only on this date" : `Still works up to ${late} ${late === 1 ? "day" : "days"} late`;
+    box.innerHTML = `<span>If the launch slips</span><strong>${margin}</strong>`;
     return;
   }
   const next = mission.nextGoodDate(state.date, ...state.aim);

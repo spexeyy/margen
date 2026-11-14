@@ -1,6 +1,6 @@
 {
   "firstDay": "2027-01-01",
-  "days": 105,
+  "days": 103,
   "size": 100,
   "landerHeight": 2.0,
   "horizon": {
@@ -25,6 +25,11 @@
       "lon": 29.13,
       "lat": -84.78,
       "source": "Athena (IM-2) aim point, LROC",
+      "landed": {
+        "lon": 29.1957,
+        "lat": -84.7906,
+        "label": "Athena landed here, 2025"
+      },
       "x0": 76100.0,
       "y0": 139380.0,
       "pixel": 20.0
