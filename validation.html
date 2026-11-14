@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="description" content="How MARGEN was checked against NASA terrain maps, JPL Horizons and the Athena landing." />
+    <title>Validation · MARGEN</title>
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="/"><img src="/margen-horizontal-on-dark.svg" alt="MARGEN" /></a>
+      <nav>
+        <a href="/">Navigator</a>
+        <a href="/validation.html" aria-current="page">Validation</a>
+      </nav>
+    </header>
+
+    <main class="grid">
+      <section class="intro">
+        <h1>Checked against NASA</h1>
+        <p>
+          MARGEN's numbers come from NASA's laser-measured lunar terrain and JPL's planetary ephemerides. Before computing
+          any result, we wrote down what agreeing with NASA would mean. This is how it went.
+        </p>
+      </section>
+
+      <section class="full">
+        <h2>Pass marks, set before measuring</h2>
+        <table class="checks">
+          <thead>
+            <tr><th>Check</th><th>Pass mark</th><th>Result</th><th></th></tr>
+          </thead>
+          <tbody id="checks"></tbody>
+        </table>
+      </section>
+
+      <section class="half">
+        <h2>Sunlight, 2008–2026</h2>
+        <div class="scatter" id="sunlight-chart"></div>
+        <p class="stat" id="sunlight-stat"></p>
+      </section>
+      <section class="half">
+        <h2>Earth in view, 2008–2026</h2>
+        <div class="scatter" id="earth-chart"></div>
+        <p class="stat" id="earth-stat"></p>
+      </section>
+      <section class="full">
+        <p class="note">
+          Each dot is one of 160 random spots between 85°S and the south pole, averaged from 2008 to 2026, a full 18.6-year
+          cycle of the Moon's orbit. Across: NASA's long-term maps (LOLA AVGVISIB, PGDA). Up:
+          MARGEN, with the same terrain and JPL DE440. On the diagonal, the two agree. NASA counts Earth in view when any
+          part of Earth shows; MARGEN does the same here, and in the navigator it asks for Earth's center, which is
+          stricter. <a href="/data/validation.json">Download the 160 points</a>.
+        </p>
+      </section>
+
+      <section class="full prose">
+        <h2>The Athena landing, March 6, 2025</h2>
+        <p id="athena"></p>
+      </section>
+
+      <section class="half prose">
+        <h2>How it works</h2>
+        <ol>
+          <li>
+            <strong>Terrain.</strong> For every 20 m spot in a 2 × 2 km site, MARGEN traces the horizon in 360
+            directions across NASA LRO LOLA terrain: 20 m detail nearby, 80 m out to 250 km, with the Moon's curvature.
+          </li>
+          <li>
+            <strong>Sky.</strong> JPL DE440 ephemerides (NAIF SPICE) give the Sun and Earth every hour from January to
+            mid-April 2027. Sunlight counts the visible part of the Sun's disc; Earth in view needs Earth's center above
+            the terrain. Solar panels and antenna sit 2 m above the ground.
+          </li>
+          <li>
+            <strong>Landings.</strong> 1,000 landing points scatter around the aim with a 100 m typical miss. A landing
+            works if, for its first 14 days, sunlight reaches it at least 50% of the time and Earth is in view at least
+            30% of the time. With 1,000 landings the chance is accurate to ±3.1 points or better (95%).
+          </li>
+        </ol>
+      </section>
+
+      <section class="half prose">
+        <h2>What it doesn't model</h2>
+        <ul>
+          <li>Rocks, small craters and slopes smaller than the 20 m map spots. Athena's crater is one of them.</li>
+          <li>Lander tilt, dust, temperature and batteries.</li>
+          <li>Radio links. Earth in view is a clear line to Earth; it does not check antennas or ground stations.</li>
+          <li>Light during the descent.</li>
+          <li>Real landing errors are not the same in every direction. MARGEN uses a 100 m typical miss.</li>
+          <li>Terrain more than 250 km away.</li>
+        </ul>
+      </section>
+
+      <section class="full prose">
+        <h2>Data and references</h2>
+        <ul class="refs">
+          <li>NASA LRO LOLA south pole elevation models, 20 m and 80 m (PGDA, NASA GSFC): <a href="https://pgda.gsfc.nasa.gov/products/90">pgda.gsfc.nasa.gov/products/90</a></li>
+          <li>NASA LOLA average illumination and Earth visibility maps, AVGVISIB (PGDA): <a href="https://pgda.gsfc.nasa.gov/products/69">pgda.gsfc.nasa.gov/products/69</a></li>
+          <li>JPL DE440 ephemerides and lunar frame kernels via NAIF SPICE: <a href="https://naif.jpl.nasa.gov/pub/naif/generic_kernels/">naif.jpl.nasa.gov</a></li>
+          <li>JPL Horizons API: <a href="https://ssd.jpl.nasa.gov/horizons/">ssd.jpl.nasa.gov/horizons</a></li>
+          <li>Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081.</li>
+          <li>Barker, M. K. et al. (2021). Improved LOLA elevation maps for south pole landing sites: error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119.</li>
+          <li>Software: NumPy, SciPy, SpiceyPy, tifffile, fsspec, Vite, TypeScript. Font: Geist (SIL Open Font License).</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>Built for the NASA Space Apps Challenge 2026 by team MARGEN, Buenos Aires.</p>
+    </footer>
+    <script type="module" src="/src/validation.ts"></script>
+  </body>
+</html>

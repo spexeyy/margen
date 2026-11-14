@@ -442,3 +442,123 @@ h2 {
     height: 200px;
   }
 }
+
+.full {
+  grid-column: 1 / -1;
+}
+
+.half {
+  grid-column: span 6;
+}
+
+.half + .half {
+  border-left: 1px solid var(--line);
+}
+
+.checks {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.checks th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.checks th,
+.checks td {
+  padding: 12px 12px 12px 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.pass {
+  color: #46a758;
+  white-space: nowrap;
+}
+
+.fail {
+  color: var(--fail);
+  white-space: nowrap;
+}
+
+.scatter svg {
+  width: 100%;
+  max-width: 440px;
+  display: block;
+}
+
+.scatter text {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.scatter .axis {
+  fill: var(--fg);
+  font-size: 12px;
+}
+
+.scatter .grid {
+  stroke: var(--line);
+}
+
+.scatter .diagonal {
+  stroke: #555;
+}
+
+.scatter circle {
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.stat {
+  font-family: var(--mono);
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.prose p,
+.prose li {
+  color: #c7c7c7;
+  line-height: 1.65;
+  max-width: 760px;
+}
+
+.prose ol,
+.prose ul {
+  padding-left: 20px;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.prose strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.prose a,
+.note a {
+  color: var(--fg);
+}
+
+.refs li {
+  font-size: 13px;
+}
+
+@media (max-width: 860px) {
+  .half {
+    grid-column: 1 / -1;
+  }
+
+  .half + .half {
+    border-left: none;
+  }
+}
