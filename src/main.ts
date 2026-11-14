@@ -196,7 +196,25 @@ function renderWhen(mission: Mission, chance: number) {
   box.querySelector("button")!.onclick = () => update({ date: next });
 }
 
+function renderLocator() {
+  const reach = toXY(0, -84)[1];
+  const at = (x: number, y: number) => [190 + (95 * x) / reach, 110 - (95 * y) / reach];
+  const rings = [-88, -86, -84].map((lat) => `<circle cx="190" cy="110" r="${(95 * toXY(0, lat)[1]) / reach}" class="ring"/>`);
+  const dots = index.sites.map((site) => {
+    const [x, y] = at(...toXY(site.lon, site.lat));
+    const left = x < 190;
+    return `<circle cx="${x}" cy="${y}" r="4" class="${site.id === state.site ? "current" : "site"}"/><text x="${left ? x - 8 : x + 8}" y="${y + 4}" text-anchor="${left ? "end" : "start"}">${site.name}</text>`;
+  });
+  byId("locator").innerHTML = `<svg viewBox="0 0 380 220" role="img" aria-label="Map of the lunar south pole with the four landing sites">
+    ${rings.join("")}
+    <path d="M185 110h10M190 105v10" class="ring"/>
+    <text x="190" y="10" text-anchor="middle">Toward Earth</text>
+    ${dots.join("")}
+  </svg>`;
+}
+
 function renderCards() {
+  renderLocator();
   byId("cards-date").textContent = label(state.date, { month: "long", day: "numeric", year: "numeric" });
   cards.replaceChildren(
     ...sites.map(({ site }) => {

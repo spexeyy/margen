@@ -772,6 +772,43 @@ h2 {
   margin-top: 10px;
 }
 
+.locator {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 32px;
+  margin-bottom: 20px;
+}
+
+.locator svg {
+  width: 380px;
+  max-width: 100%;
+  display: block;
+}
+
+.locator .note {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.locator text {
+  font-size: 11px;
+  fill: var(--muted);
+}
+
+.locator .ring {
+  fill: none;
+  stroke: var(--line-strong);
+}
+
+.locator .site {
+  fill: var(--muted);
+}
+
+.locator .current {
+  fill: var(--amber);
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
