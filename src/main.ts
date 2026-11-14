@@ -2,6 +2,7 @@ import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./style.css";
 import { loadEphemeris, loadHorizons, loadIndex, loadSite } from "./data";
+import { datePicker } from "./datePicker";
 import { drawHorizon, hoursUntilChange } from "./horizon";
 import { drawMap, onAim, shade, zone } from "./map";
 import { GOOD_CHANCE, LANDINGS, Mission, NEEDS_EARTH, NEEDS_SUNLIGHT, WINDOW_DAYS } from "./mission";
@@ -29,7 +30,6 @@ const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) 
 
 const mapCanvas = byId<HTMLCanvasElement>("map");
 const horizonCanvas = byId<HTMLCanvasElement>("horizon");
-const dateInput = byId<HTMLInputElement>("date");
 const calendar = byId("calendar");
 const cards = byId("cards");
 
@@ -115,7 +115,7 @@ async function renderHorizon() {
   drawHorizon(horizonCanvas, { profile, sun: sun.slice(0, span), earth: earth.slice(0, span) });
 }
 
-function renderCalendar(mission: Mission) {
+function renderCalendar(mission: Mission, chances: number[]) {
   if (calendar.childElementCount !== mission.dates) {
     calendar.replaceChildren(
       ...Array.from({ length: mission.dates }, (_, date) => {
@@ -128,7 +128,7 @@ function renderCalendar(mission: Mission) {
   }
   for (const button of calendar.children as HTMLCollectionOf<HTMLButtonElement>) {
     const date = Number(button.dataset.date);
-    const chance = mission.chance(date, ...state.aim);
+    const chance = chances[date];
     button.style.setProperty("--chance", String(chance));
     button.classList.toggle("good", chance >= GOOD_CHANCE);
     button.setAttribute("aria-pressed", String(date === state.date));
@@ -203,9 +203,10 @@ function render() {
   byId("sunlight").classList.toggle("short", window.sunlight[cell] < NEEDS_SUNLIGHT);
   byId("earth").textContent = percent(window.earth[cell]);
   byId("earth").classList.toggle("short", window.earth[cell] < NEEDS_EARTH);
-  dateInput.value = isoDate(state.date);
+  const chances = Array.from({ length: mission.dates }, (_, date) => mission.chance(date, ...state.aim));
+  picker.render(state.date, chances);
   renderWhen(mission, chance);
-  renderCalendar(mission);
+  renderCalendar(mission, chances);
   writeUrl();
   void renderHorizon();
 }
@@ -219,12 +220,7 @@ function update(change: Partial<typeof state>) {
 }
 
 const firstMission = missions.get(index.sites[0].id)!;
-dateInput.min = isoDate(0);
-dateInput.max = isoDate(firstMission.dates - 1);
-dateInput.addEventListener("change", () => {
-  const date = Math.round((Date.parse(`${dateInput.value}T00:00:00Z`) - firstDay) / DAY_MS);
-  if (date >= 0 && date < firstMission.dates) update({ date });
-});
+const picker = datePicker(firstDay, firstMission.dates, (date) => update({ date }));
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-shift]")) {
   button.addEventListener("click", () => {
     update({ date: Math.min(firstMission.dates - 1, Math.max(0, state.date + Number(button.dataset.shift))) });
