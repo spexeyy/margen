@@ -10,7 +10,94 @@
     <title>MARGEN · Miss the target. Keep the mission.</title>
   </head>
   <body>
-    <div id="app"></div>
+    <header class="top">
+      <a class="brand" href="/"><img src="/margen-horizontal-on-dark.svg" alt="MARGEN" /></a>
+      <nav>
+        <a href="/" aria-current="page">Navigator</a>
+        <a href="/validation.html">Validation</a>
+      </nav>
+    </header>
+
+    <main class="grid">
+      <section class="intro">
+        <h1>Miss the target. Keep the mission.</h1>
+        <p>
+          No lander touches down exactly where it aims, and launches slip. Pick a site, a landing date and an aim point.
+          MARGEN drops 1,000 possible landings around your aim and checks each one against NASA terrain and JPL
+          ephemerides.
+        </p>
+      </section>
+
+      <section class="map-panel">
+        <canvas id="map" aria-label="Map of the landing site. Drag to move the aim point."></canvas>
+        <ul class="legend">
+          <li><i class="swatch zone"></i>Enough sunlight and Earth in view for the first 14 days</li>
+          <li><i class="swatch works"></i>Landing works</li>
+          <li><i class="swatch fails"></i>Landing fails</li>
+        </ul>
+      </section>
+
+      <aside class="readout">
+        <p class="eyebrow" id="site-name"></p>
+        <p class="chance" id="chance"></p>
+        <p class="caption">Chance the mission works · out of 1,000 possible landings, 100 m typical miss</p>
+
+        <dl class="needs">
+          <div>
+            <dt>Sunlight</dt>
+            <dd>powers the lander</dd>
+            <dd class="value" id="sunlight"></dd>
+            <dd class="need">needs 50%</dd>
+          </div>
+          <div>
+            <dt>Earth in view</dt>
+            <dd>lets it talk to home</dd>
+            <dd class="value" id="earth"></dd>
+            <dd class="need">needs 30%</dd>
+          </div>
+        </dl>
+        <p class="note">At the aim point, share of the first 14 days after landing.</p>
+
+        <div class="date-row">
+          <label for="date">Landing date</label>
+          <input type="date" id="date" />
+          <div class="shifts">
+            <button type="button" data-shift="-1">−1 day</button>
+            <button type="button" data-shift="1">+1 day</button>
+            <button type="button" data-shift="7">Launch slips a week</button>
+          </div>
+        </div>
+        <div class="when" id="when"></div>
+        <button type="button" class="best" id="best">Aim at the safest spot</button>
+      </aside>
+
+      <section class="calendar-panel">
+        <h2>Chance by landing date, same aim</h2>
+        <div class="calendar" id="calendar"></div>
+      </section>
+
+      <section class="horizon-panel">
+        <h2>What the lander sees from the aim point</h2>
+        <p class="events" id="events"></p>
+        <canvas id="horizon" aria-label="Horizon around the aim point with the paths of the Sun and Earth over the next 14 days"></canvas>
+        <p class="note">
+          Terrain horizon in every direction, with the paths of the Sun and Earth over the first 14 days. Dashed: hidden
+          behind terrain. Heights are stretched to make the horizon readable.
+        </p>
+      </section>
+
+      <section class="sites-panel">
+        <h2>Compare sites on <span id="cards-date"></span></h2>
+        <div class="cards" id="cards"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>
+        Data: NASA LRO LOLA elevation models and AVGVISIB maps (PGDA, NASA GSFC) · JPL DE440 ephemerides (NAIF SPICE) ·
+        JPL Horizons. Built for the NASA Space Apps Challenge 2026 by team MARGEN, Buenos Aires.
+      </p>
+    </footer>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
