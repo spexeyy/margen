@@ -20,6 +20,7 @@ HORIZON_MIN_DEG, HORIZON_STEP_DEG = -5.0, 0.1
 SITES = [
     {
         "id": "ridge",
+        "note": "Sunny ridge by Shackleton crater, 10 km from the pole",
         "name": "Shackleton connecting ridge",
         "lon": 196.739,
         "lat": -89.684,
@@ -27,6 +28,7 @@ SITES = [
     },
     {
         "id": "mouton",
+        "note": "Mountain where the Athena lander touched down in 2025",
         "name": "Mons Mouton",
         "lon": 29.13,
         "lat": -84.78,
@@ -35,6 +37,7 @@ SITES = [
     },
     {
         "id": "gerlache",
+        "note": "Artemis candidate region",
         "name": "de Gerlache rim",
         "lon": 291.496,
         "lat": -88.313,
@@ -42,6 +45,7 @@ SITES = [
     },
     {
         "id": "nobile",
+        "note": "Artemis candidate region",
         "name": "Nobile rim",
         "lon": 37.270,
         "lat": -85.270,

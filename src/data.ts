@@ -1,6 +1,7 @@
 export interface Site {
   id: string;
   name: string;
+  note: string;
   lon: number;
   lat: number;
   source: string;

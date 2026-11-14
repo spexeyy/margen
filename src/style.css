@@ -264,26 +264,92 @@ h2 {
   gap: 20px;
 }
 
-.site-pick {
+.site-field {
+  position: relative;
   display: grid;
   gap: 6px;
 }
 
-.site-pick select {
-  appearance: none;
-  font: inherit;
+.site-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
-  color: var(--fg);
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238f8f8f' stroke-width='1.5'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right 12px center;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  padding: 10px 40px 10px 12px;
-  cursor: pointer;
+  text-align: left;
 }
 
-.site-pick select option {
+.site-open svg {
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.site-open[aria-expanded="true"] {
+  background: var(--hover);
+}
+
+.site-open[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.site-popover {
+  position: absolute;
+  top: 74px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 6px;
   background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+}
+
+.site-popover .note {
+  padding: 8px 10px 6px;
+}
+
+.site-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.site-menu li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.site-menu li:hover,
+.site-menu li:focus-visible {
+  background: var(--hover);
+}
+
+.site-menu li[aria-selected="true"] .option-name::after {
+  content: " ✓";
+  color: var(--muted);
+}
+
+.option-name {
+  font-weight: 500;
+}
+
+.option-chance {
+  font-family: var(--mono);
+}
+
+.option-note {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .visually-hidden {

@@ -4,6 +4,7 @@ import "./style.css";
 import { loadEphemeris, loadHorizons, loadIndex, loadSite } from "./data";
 import type { Site } from "./data";
 import { datePicker } from "./datePicker";
+import { siteMenu } from "./siteMenu";
 import { drawSky, drawTimeline, hoursUntilChange, withVisibility } from "./horizon";
 import type { Seen, Sky } from "./horizon";
 import { drawMap, onDrag, shade, zone } from "./map";
@@ -246,7 +247,7 @@ function render() {
   const cell = mission.cell(...state.aim);
 
   renderMap(mission, outcomes);
-  siteSelect.value = state.site;
+  menu.render(state.site, (id) => missions.get(id)!.chance(state.date, ...bestAim(id, state.date)));
   byId("count").textContent = (chance * LANDINGS).toLocaleString("en-US");
   byId("summary").textContent = `${percent(chance)} chance the mission works. Sunlight ${percent(window.sunlight[cell])}, Earth in view ${percent(window.earth[cell])}.`;
   byId("chance").textContent = percent(chance);
@@ -273,9 +274,7 @@ function update(change: Partial<typeof state>) {
   if (dateChanged || siteChanged) renderCards();
 }
 
-const siteSelect = byId<HTMLSelectElement>("site");
-siteSelect.replaceChildren(...index.sites.map((site) => new Option(site.name, site.id)));
-siteSelect.addEventListener("change", () => update({ site: siteSelect.value, aim: bestAim(siteSelect.value, state.date) }));
+const menu = siteMenu(index.sites, (id) => update({ site: id, aim: bestAim(id, state.date) }));
 
 const firstMission = missions.get(index.sites[0].id)!;
 const picker = datePicker(firstDay, firstMission.dates, (date) => update({ date }));
