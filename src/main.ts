@@ -234,6 +234,15 @@ onAim(mapCanvas, (fx, fy) => {
   const mission = missions.get(state.site)!;
   update({ aim: mission.clampAim(fx * mission.extent, fy * mission.extent) });
 });
+mapCanvas.addEventListener("keydown", (event) => {
+  const moves: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  const move = moves[event.key];
+  if (!move) return;
+  event.preventDefault();
+  const step = event.shiftKey ? 100 : 20;
+  const mission = missions.get(state.site)!;
+  update({ aim: mission.clampAim(state.aim[0] + move[0] * step, state.aim[1] + move[1] * step) });
+});
 byId("best").addEventListener("click", () => update({ aim: bestAim(state.site, state.date) }));
 addEventListener("resize", render);
 onThemeChange(render);

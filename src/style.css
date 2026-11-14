@@ -180,6 +180,11 @@ h2 {
   border-right: 1px solid var(--line);
 }
 
+#map:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
 #map {
   width: 100%;
   aspect-ratio: 1;
