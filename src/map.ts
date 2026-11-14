@@ -13,6 +13,7 @@ export interface MapView {
   aim: [number, number];
   outcomes: Uint8Array;
   marker: { x: number; y: number; label: string } | null;
+  north: [number, number];
 }
 
 function canvasOf(size: number): [HTMLCanvasElement, CanvasRenderingContext2D, ImageData] {
@@ -74,7 +75,7 @@ export function drawMap(canvas: HTMLCanvasElement, view: MapView): void {
   const width = canvas.width;
   const scale = width / view.extent;
   const unit = width / 600;
-  const [works, fails, fg, earth] = ["works", "fail", "fg", "earth"].map(color);
+  const [works, fails, fg] = ["works", "fail", "fg"].map(color);
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(view.shade, 0, 0, width, width);
   ctx.drawImage(view.zone, 0, 0, width, width);
@@ -101,11 +102,24 @@ export function drawMap(canvas: HTMLCanvasElement, view: MapView): void {
   if (view.marker) {
     const mx = view.marker.x * scale;
     const my = view.marker.y * scale;
-    ctx.strokeStyle = earth;
+    ctx.strokeStyle = fg;
     ctx.strokeRect(mx - 5 * unit, my - 5 * unit, 10 * unit, 10 * unit);
-    ctx.fillStyle = earth;
+    ctx.fillStyle = fg;
     ctx.fillText(view.marker.label, mx + 10 * unit, my + 4 * unit);
   }
+
+  const [nx, ny] = view.north;
+  const [cx, cy] = [width - 28 * unit, 28 * unit];
+  ctx.strokeStyle = fg;
+  ctx.lineWidth = 1.5 * unit;
+  ctx.beginPath();
+  ctx.moveTo(cx - nx * 12 * unit, cy - ny * 12 * unit);
+  ctx.lineTo(cx + nx * 12 * unit, cy + ny * 12 * unit);
+  ctx.stroke();
+  ctx.fillStyle = fg;
+  ctx.textAlign = "center";
+  ctx.fillText("N", cx + nx * 22 * unit, cy + ny * 22 * unit + 4 * unit);
+  ctx.textAlign = "start";
 
   const bar = 500 * scale;
   ctx.fillStyle = fg;

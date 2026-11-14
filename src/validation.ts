@@ -57,11 +57,20 @@ const { sunlight, earth, points } = result.avgvisib;
 const athena = result.athena;
 const athenaGap = Math.abs(athena.sunElevation - athena.horizonsSunElevation);
 
+const verdicts = [
+  result.ephemerisMaxError < 0.01,
+  passes(sunlight),
+  passes(earth),
+  athenaGap < 0.05,
+];
+const passed = verdicts.filter(Boolean).length;
+byId("verdict").textContent = passed === verdicts.length ? `All ${passed} checks pass.` : `${passed} of ${verdicts.length} checks pass.`;
+
 byId("checks").innerHTML = [
-  row("Sun and Earth positions vs JPL Horizons", "Within 0.01°", `${result.ephemerisMaxError}° worst`, result.ephemerisMaxError < 0.01),
-  row("Sunlight vs NASA long-term map", "Mean difference under 3 points, correlation above 0.95", `${sunlight.meanDifference} points, ${sunlight.correlation}`, passes(sunlight)),
-  row("Earth in view vs NASA long-term map", "Mean difference under 3 points, correlation above 0.95", `${earth.meanDifference} points, ${earth.correlation}`, passes(earth)),
-  row("Sun height at Athena's landing vs JPL Horizons", "Within 0.05°", `${athena.sunElevation}° vs ${athena.horizonsSunElevation}°`, athenaGap < 0.05),
+  row("Sun and Earth positions vs JPL Horizons", "Within 0.01°", `${result.ephemerisMaxError}° worst`, verdicts[0]),
+  row("Sunlight vs NASA long-term map", "Mean difference under 3 points, correlation above 0.95", `${sunlight.meanDifference} points, ${sunlight.correlation}`, verdicts[1]),
+  row("Earth in view vs NASA long-term map", "Mean difference under 3 points, correlation above 0.95", `${earth.meanDifference} points, ${earth.correlation}`, verdicts[2]),
+  row("Sun height at Athena's landing vs JPL Horizons", "Within 0.05°", `${athena.sunElevation}° vs ${athena.horizonsSunElevation}°`, verdicts[3]),
 ].join("");
 
 byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "sun", "Sunlight");
