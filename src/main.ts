@@ -160,7 +160,9 @@ function renderCalendar(mission: Mission, chances: number[]) {
       ...Array.from({ length: mission.dates }, (_, date) => {
         const button = document.createElement("button");
         button.dataset.date = String(date);
-        if (label(date, { day: "numeric" }) === "1") button.dataset.month = label(date, { month: "short" });
+        const day = Number(label(date, { day: "numeric" }));
+        if (day === 1) button.dataset.tick = label(date);
+        else if ([8, 15, 22].includes(day)) button.dataset.tick = String(day);
         return button;
       }),
     );

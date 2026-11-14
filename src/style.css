@@ -693,11 +693,12 @@ h2 {
   outline-offset: 1px;
 }
 
-.calendar button[data-month]::before {
-  content: attr(data-month);
+.calendar button[data-tick]::before {
+  content: attr(data-tick);
   position: absolute;
   top: -18px;
   left: 0;
+  white-space: nowrap;
   font-size: 11px;
   color: var(--muted);
 }
