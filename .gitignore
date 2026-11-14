@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/raw/
+__pycache__/
+.DS_Store
+
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursor/
+.cursorrules
+.windsurf/
+.aider*
+.github/copilot-instructions.md
