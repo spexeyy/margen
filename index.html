@@ -115,12 +115,22 @@
         <p class="events" id="events"></p>
 
         <h3>When they're up</h3>
-        <canvas id="timeline" role="img" aria-label="When the Sun and Earth are above the hills over the first 14 days. Drag to move through time."></canvas>
-        <div class="scrub">
-          <label for="hour">Time after landing</label>
-          <input type="range" id="hour" min="0" max="335" value="0" />
-          <output id="hour-label" for="hour"></output>
+        <canvas
+          id="timeline"
+          tabindex="0"
+          role="slider"
+          aria-label="Time after landing. Drag or use the arrow keys."
+          aria-valuemin="0"
+          aria-valuemax="335"
+        ></canvas>
+        <div class="moment-row">
+          <button type="button" class="play" id="play">
+            <svg class="pause-icon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="2.5" height="9" rx="0.5" /><rect x="7.5" y="1.5" width="2.5" height="9" rx="0.5" /></svg>
+            <svg class="play-icon" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4a.5.5 0 0 0 .76.43l6.9-4.2a.5.5 0 0 0 0-.86l-6.9-4.2A.5.5 0 0 0 3 1.8Z" /></svg>
+          </button>
+          <p class="moment" id="moment"></p>
         </div>
+        <p class="note">The first 14 days play on their own. Tap or drag the timeline to stop at a moment.</p>
 
         <h3>Where they are in the sky</h3>
         <canvas id="sky" role="img" aria-label="Line of hills all around the aim point, with the paths of the Sun and Earth over the first 14 days"></canvas>

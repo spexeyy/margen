@@ -19,8 +19,8 @@ export interface TimelineRow {
 
 const COMPASS: [number, string][] = [[0, "N"], [90, "E"], [180, "S"], [270, "W"]];
 const LEFT = 40;
-const BAR = 16;
-const ROW = 46;
+const BAR = 6;
+const ROW = 40;
 
 function prepare(canvas: HTMLCanvasElement): [CanvasRenderingContext2D, number, number] {
   const ctx = canvas.getContext("2d")!;
@@ -42,32 +42,60 @@ export function drawTimeline(canvas: HTMLCanvasElement, rows: TimelineRow[], hou
   const [ctx, width] = prepare(canvas);
   const hours = rows[0].path.length;
   const toX = (h: number) => (width * h) / hours;
+  const x = Math.min(width - 6, Math.max(6, toX(hour)));
   rows.forEach((row, i) => {
-    const top = i * ROW;
+    const top = 18 + i * ROW;
+    ctx.font = '13px "Geist Variable", sans-serif';
     ctx.fillStyle = color("fg");
-    ctx.fillText(row.label, 0, top + 13);
+    ctx.fillText(row.label, 0, top);
+    ctx.font = '12px "Geist Variable", sans-serif';
     ctx.fillStyle = color("muted");
-    ctx.fillText(row.share, ctx.measureText(row.label).width + 10, top + 13);
-    ctx.fillStyle = color("grid");
-    ctx.fillRect(0, top + 20, width, BAR);
+    ctx.textAlign = "right";
+    ctx.fillText(row.share, width, top);
+    ctx.textAlign = "left";
+    const middle = top + 13;
+    ctx.fillStyle = color("line-strong");
+    ctx.fillRect(0, middle - 0.5, width, 1);
     ctx.fillStyle = color(row.fill);
-    row.path.forEach((p, h) => {
-      if (p.visible) ctx.fillRect(toX(h), top + 20, toX(h + 1) - toX(h) + 0.5, BAR);
-    });
+    let start = -1;
+    for (let h = 0; h <= hours; h++) {
+      const visible = h < hours && row.path[h].visible;
+      if (visible && start < 0) start = h;
+      if (!visible && start >= 0) {
+        ctx.beginPath();
+        ctx.roundRect(toX(start), middle - BAR / 2, toX(h) - toX(start), BAR, BAR / 2);
+        ctx.fill();
+        start = -1;
+      }
+    }
+    const now = row.path[Math.floor(hour)].visible;
+    ctx.beginPath();
+    ctx.arc(x, middle, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = now ? color(row.fill) : color("bg");
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = now ? color("bg") : color("muted");
+    ctx.stroke();
   });
-  const axis = rows.length * ROW + 8;
+
+  const axis = 18 + rows.length * ROW;
+  ctx.fillStyle = color("line-strong");
+  ctx.fillRect(0, axis, width, 1);
+  for (let day = 0; day <= hours / 24; day++) ctx.fillRect(Math.min(width - 1, toX(day * 24)), axis, 1, 5);
+  ctx.fillStyle = color("fg");
+  ctx.beginPath();
+  ctx.moveTo(x, axis - 1);
+  ctx.lineTo(x - 5, axis + 7);
+  ctx.lineTo(x + 5, axis + 7);
+  ctx.closePath();
+  ctx.fill();
   ctx.fillStyle = color("muted");
+  ctx.font = '11px "Geist Variable", sans-serif';
   ticks.forEach((tick, i) => {
     const size = ctx.measureText(tick).width;
-    const x = (width * i) / (ticks.length - 1);
-    ctx.fillText(tick, Math.min(width - size, Math.max(0, x - size / 2)), axis);
+    const tx = (width * i) / (ticks.length - 1);
+    ctx.fillText(tick, Math.min(width - size, Math.max(0, tx - size / 2)), axis + 22);
   });
-  ctx.strokeStyle = color("fg");
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(toX(hour), 16);
-  ctx.lineTo(toX(hour), rows.length * ROW - 6);
-  ctx.stroke();
 }
 
 function relative(az: number, center: number): number {

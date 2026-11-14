@@ -33,9 +33,13 @@ const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) 
 const mapCanvas = byId<HTMLCanvasElement>("map");
 const timelineCanvas = byId<HTMLCanvasElement>("timeline");
 const skyCanvas = byId<HTMLCanvasElement>("sky");
-const hourInput = byId<HTMLInputElement>("hour");
-const hourLabel = byId("hour-label");
+const playButton = byId<HTMLButtonElement>("play");
+const HOURS_PER_MS = 0.028;
 let skyView: Sky | null = null;
+let hour = 0;
+let playing = false;
+let onScreen = false;
+let lastFrame = 0;
 const calendar = byId("calendar");
 const cards = byId("cards");
 
@@ -125,11 +129,15 @@ async function renderHorizon() {
 
 function drawSkyViews() {
   if (!skyView) return;
-  const hour = Number(hourInput.value);
   const window = windowOf(state.site, state.date);
   const cell = missions.get(state.site)!.cell(...state.aim);
   fitCanvas(timelineCanvas);
   fitCanvas(skyCanvas);
+  const now = Math.floor(hour);
+  const moment = new Date(firstDay + (state.date * 24 + now) * 3600000);
+  const when = `Day ${(now / 24).toFixed(1)} · ${moment.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}, ${moment.toISOString().slice(11, 16)} UTC`;
+  const where = (p: Seen) => (p.visible ? "above the hills" : "behind the hills");
+  const status = `Sun ${where(skyView.sun[now])} · Earth ${where(skyView.earth[now])}`;
   drawTimeline(
     timelineCanvas,
     [
@@ -139,11 +147,10 @@ function drawSkyViews() {
     hour,
     [label(state.date), label(state.date + 7), label(state.date + WINDOW_DAYS)],
   );
-  drawSky(skyCanvas, skyView, hour);
-  const where = (p: Seen) => (p.visible ? "above the hills" : "behind the hills");
-  const moment = new Date(firstDay + (state.date * 24 + hour) * 3600000);
-  const when = `${moment.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}, ${moment.toISOString().slice(11, 16)} UTC`;
-  hourLabel.textContent = `Day ${(hour / 24).toFixed(1)} · ${when} · Sun ${where(skyView.sun[hour])}, Earth ${where(skyView.earth[hour])}`;
+  drawSky(skyCanvas, skyView, now);
+  byId("moment").textContent = `${when} · ${status}`;
+  timelineCanvas.setAttribute("aria-valuenow", String(now));
+  timelineCanvas.setAttribute("aria-valuetext", `${when}. ${status}`);
 }
 
 function renderCalendar(mission: Mission, chances: number[]) {
@@ -261,7 +268,7 @@ function update(change: Partial<typeof state>) {
   const dateChanged = change.date !== undefined && change.date !== state.date;
   const siteChanged = change.site !== undefined && change.site !== state.site;
   Object.assign(state, change);
-  if (dateChanged || siteChanged) hourInput.value = "0";
+  if (dateChanged || siteChanged) hour = 0;
   render();
   if (dateChanged || siteChanged) renderCards();
 }
@@ -281,11 +288,42 @@ calendar.addEventListener("click", (event) => {
   const date = (event.target as HTMLElement).dataset.date;
   if (date !== undefined) update({ date: Number(date) });
 });
+function setPlaying(value: boolean) {
+  playing = value;
+  playButton.setAttribute("aria-label", playing ? "Pause" : "Play");
+  playButton.dataset.playing = String(playing);
+}
+
+function tick(time: number) {
+  if (playing && onScreen && skyView) {
+    hour = (hour + Math.min(100, time - lastFrame) * HOURS_PER_MS) % (WINDOW_DAYS * 24);
+    drawSkyViews();
+  }
+  lastFrame = time;
+  requestAnimationFrame(tick);
+}
+
+playButton.addEventListener("click", () => setPlaying(!playing));
 onDrag(timelineCanvas, (fx) => {
-  hourInput.value = String(Math.round(fx * Number(hourInput.max)));
+  setPlaying(false);
+  hour = Math.round(fx * (WINDOW_DAYS * 24 - 1));
   drawSkyViews();
 });
-hourInput.addEventListener("input", drawSkyViews);
+timelineCanvas.addEventListener("keydown", (event) => {
+  const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowDown: -1, ArrowUp: 1 };
+  const last = WINDOW_DAYS * 24 - 1;
+  const now = Math.floor(hour);
+  if (event.key === "Home") hour = 0;
+  else if (event.key === "End") hour = last;
+  else if (event.key in steps) hour = Math.min(last, Math.max(0, now + steps[event.key] * (event.shiftKey ? 24 : 1)));
+  else return;
+  event.preventDefault();
+  setPlaying(false);
+  drawSkyViews();
+});
+new IntersectionObserver(([entry]) => (onScreen = entry.isIntersecting)).observe(timelineCanvas);
+setPlaying(!matchMedia("(prefers-reduced-motion: reduce)").matches);
+requestAnimationFrame(tick);
 onDrag(mapCanvas, (fx, fy) => {
   byId("drag-hint").hidden = true;
   const mission = missions.get(state.site)!;
