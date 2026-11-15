@@ -19,6 +19,7 @@
   font-family: "Geist Variable", system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);
+  scrollbar-color: var(--grid-zero) transparent;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -338,7 +339,10 @@ h2 {
   position: absolute;
   top: 66px;
   left: 0;
-  width: min(100%, 360px);
+  width: min(360px, calc(100vw - 40px));
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  scrollbar-width: thin;
   z-index: 10;
   padding: 6px;
   background: var(--bg);
@@ -542,7 +546,7 @@ h2 {
   position: absolute;
   top: 68px;
   left: 0;
-  width: min(100%, 360px);
+  width: min(360px, calc(100vw - 40px));
   z-index: 10;
   padding: 12px;
   background: var(--bg);
