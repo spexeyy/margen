@@ -14,7 +14,7 @@ A landing works when:
 
 MARGEN simulates 1,000 landings scattered around the aim point (100 m typical miss: half fall closer than that) and reports the chance the mission works, for every site and landing date.
 
-The sunniest spot is not always a landing spot. On January 15, 2027, the best aim on the Shackleton connecting ridge gives a 59% chance: its sunlit ground is a strip of flat terrain between steep slopes. On no landing date of 2027 does it reach 90%; its best date gives 68%. Athena's aim on Mons Mouton gives 100% on January 15, still works if the landing slips six days, and has 78 good dates in the year. The Artemis III candidate site on Mons Mouton has 132, the most of the eleven sites.
+The sunniest spot is not always a landing spot. On January 15, 2027, the best aim on the Shackleton connecting ridge gives a 59% chance: its sunlit ground is a strip of flat terrain between steep slopes. On no landing date of 2027 does it reach 90%; its best date gives 68%. Athena's aim on Mons Mouton gives 100% on January 15 and still works if the landing slips six days; with that aim, 68 landing dates in 2027 reach 90%, the most of the eleven sites.
 
 Built for the NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navigator", by team MARGEN (Buenos Aires).
 
@@ -22,6 +22,7 @@ Built for the NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navi
 
 - **Pick a site** near the lunar south pole: the Shackleton connecting ridge, Athena's aim on Mons Mouton, and all nine Artemis III candidate regions. A table ranks the sites, best first, by the chance the mission works on the chosen date and how many days late the launch can slip.
 - **Drag the aim point** on a 2 × 2 km terrain map. The amber zone is flat ground with enough sunlight and Earth in view; each dot is one possible landing.
+- **See why landings fail:** the chance sits next to the 90% target, and every failing landing is counted under the requirement it misses most: too steep, too little sunlight, or Earth out of view. "Aim at the safest spot" previews where it moves and what it gains.
 - **Change the landing date** (January 1 to December 18, 2027) or let the launch slip a week, and see the next good date.
 - **See what the lander sees:** the terrain horizon in every direction, the paths of the Sun and Earth over the next 14 days, and when they set. A spot a few hundred meters away can fail because the Sun hides behind a hill.
 - **Share any state** with a link: `?site=mouton&date=2027-01-15&aim=890,950`.
