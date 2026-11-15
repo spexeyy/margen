@@ -1,5 +1,4 @@
 import "@fontsource-variable/geist";
-import "@fontsource-variable/geist-mono";
 import "./style.css";
 import { LANDINGS } from "./mission";
 import { onThemeChange } from "./theme";
@@ -47,7 +46,7 @@ function scatter(pairs: [number, number][], kind: "sun" | "earth", name: string)
 
 function row(check: string, mark: string, value: string, pass: boolean): string {
   const status = pass ? `<span class="pass">✓ Pass</span>` : `<span class="fail">✕ Fail</span>`;
-  return `<tr><td>${check}</td><td>${mark}</td><td class="mono">${value}</td><td>${status}</td></tr>`;
+  return `<tr><td>${check}</td><td>${mark}</td><td class="tabular">${value}</td><td>${status}</td></tr>`;
 }
 
 function passes(summary: Summary): boolean {

@@ -15,7 +15,6 @@
   --terrain-edge: #8f8f8f;
   --grid: #161616;
   --grid-zero: #3a3a3a;
-  --mono: "Geist Mono Variable", ui-monospace, monospace;
   font-family: "Geist Variable", system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);
@@ -205,7 +204,7 @@ h2 {
   left: 12px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 18px;
   background: var(--bg);
   border: 1px solid var(--line-strong);
@@ -231,7 +230,7 @@ h2 {
 }
 
 .aim-coords {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 15px;
 }
 
@@ -386,7 +385,7 @@ h2 {
 }
 
 .option-chance {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .option-note {
@@ -410,7 +409,7 @@ h2 {
 }
 
 .chance {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: clamp(56px, 7vw, 88px);
   font-weight: 500;
   letter-spacing: -0.06em;
@@ -463,7 +462,7 @@ h2 {
 }
 
 .needs td {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 20px;
 }
 
@@ -533,7 +532,7 @@ h2 {
   padding: 0 8px;
   border: none;
   border-radius: 0;
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 14px;
 }
 
@@ -546,13 +545,13 @@ h2 {
   position: absolute;
   top: 68px;
   left: 0;
-  width: min(360px, calc(100vw - 40px));
+  width: 288px;
   z-index: 10;
   padding: 12px;
   background: var(--bg);
   border: 1px solid var(--line-strong);
   border-radius: 12px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
 }
 
 .month-head {
@@ -560,55 +559,105 @@ h2 {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   text-align: center;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .month-head .step {
-  height: 32px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.month-head .step:hover:not(:disabled) {
+  background: var(--line);
 }
 
 .weekdays,
 .days {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
+  gap: 2px;
 }
 
 .weekdays span {
   text-align: center;
   font-size: 11px;
   color: var(--muted);
-  padding-bottom: 4px;
+  padding: 4px 0;
 }
 
 .days button {
+  position: relative;
   height: 36px;
-  padding: 0;
+  padding: 0 0 4px;
   border: none;
-  border-radius: 6px;
-  font-family: var(--mono);
+  border-radius: 8px;
   font-size: 13px;
-  background: color-mix(in srgb, var(--fg) calc(4% + 16% * var(--chance)), transparent);
+  font-variant-numeric: tabular-nums;
 }
 
-.days button.good {
-  background: color-mix(in srgb, var(--amber) calc(20% + 60% * var(--chance)), transparent);
+.days button:hover:not(:disabled) {
+  background: var(--line);
+}
+
+.days button::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: var(--chance);
+}
+
+.days button.good::after {
+  background: var(--amber);
+  opacity: 1;
 }
 
 .days button[aria-pressed="true"] {
   background: var(--fg);
   color: var(--bg);
+  font-weight: 500;
 }
 
 .days button:disabled {
-  background: none;
   color: var(--line-strong);
   cursor: default;
 }
 
-.date-popover .note {
+.days button:disabled::after {
+  display: none;
+}
+
+.dot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
   margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dot-legend i {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  vertical-align: 1px;
+}
+
+.dot-legend i.good {
+  background: var(--amber);
 }
 
 .slip {
@@ -708,7 +757,7 @@ h2 {
 }
 
 .events {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 15px;
   margin-bottom: 14px;
 }
@@ -751,7 +800,7 @@ h2 {
 }
 
 .moment {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
 }
 
@@ -848,7 +897,7 @@ h2 {
 }
 
 .chance-cell {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 20px;
   color: var(--fail);
 }
@@ -963,8 +1012,8 @@ h2 {
   vertical-align: top;
 }
 
-.mono {
-  font-family: var(--mono);
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 .pass {
@@ -1015,7 +1064,7 @@ h2 {
 }
 
 .stat {
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
   font-size: 14px;
   margin-top: 12px;
 }

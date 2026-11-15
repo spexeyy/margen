@@ -1,5 +1,4 @@
 import "@fontsource-variable/geist";
-import "@fontsource-variable/geist-mono";
 import "./style.css";
 import { loadEphemeris, loadHorizons, loadIndex, loadSite } from "./data";
 import type { Site, SiteData } from "./data";
