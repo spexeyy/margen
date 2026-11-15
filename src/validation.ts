@@ -44,9 +44,16 @@ function scatter(pairs: [number, number][], kind: "sun" | "earth", name: string)
   </svg>`;
 }
 
-function row(check: string, mark: string, value: string, pass: boolean): string {
-  const status = pass ? `<span class="pass">✓ Pass</span>` : `<span class="fail">✕ Fail</span>`;
-  return `<tr><td>${check}</td><td>${mark}</td><td class="tabular">${value}</td><td>${status}</td></tr>`;
+interface Check {
+  value: string;
+  name: string;
+  detail: string;
+  miss: number;
+}
+
+function card({ value, name, detail, miss }: Check): string {
+  const status = miss <= 0 ? `<span class="status pass">✓ Pass</span>` : `<span class="status fail">✕ Missed by ${miss.toFixed(1)}</span>`;
+  return `<article class="score">${status}<strong class="score-value">${value}</strong><span class="score-name">${name}</span><span class="score-detail">${detail}</span></article>`;
 }
 
 function passes(summary: Summary): boolean {
@@ -59,36 +66,25 @@ const athenaGap = Math.abs(athena.sunElevation - athena.horizonsSunElevation);
 // Widest 95% interval of a chance estimated from this many landings, in points: at a true chance of 50%.
 const simulationError = 196 * Math.sqrt(0.25 / LANDINGS);
 
-const verdicts = [
-  result.ephemerisMaxError < 0.01,
-  passes(sunlight),
-  passes(earth),
-  athenaGap < 0.05,
-  simulationError <= 3,
+const checks: Check[] = [
+  { value: `${result.ephemerisMaxError}°`, name: "Sun and Earth positions", detail: "Worst of 48 against JPL Horizons. Mark: within 0.01°", miss: result.ephemerisMaxError < 0.01 ? 0 : 1 },
+  { value: `${sunlight.meanDifference} pts`, name: "Sunlight share", detail: `Against NASA's map, r ${sunlight.correlation}. Mark: under 3 points, r above 0.95`, miss: passes(sunlight) ? 0 : 1 },
+  { value: `${earth.meanDifference} pts`, name: "Earth-in-view share", detail: `Against NASA's map, r ${earth.correlation}. Mark: under 3 points, r above 0.95`, miss: passes(earth) ? 0 : 1 },
+  { value: `${athena.sunElevation}°`, name: "Sun height at Athena's landing", detail: `JPL Horizons: ${athena.horizonsSunElevation}°. Mark: within 0.05°`, miss: athenaGap < 0.05 ? 0 : 1 },
+  { value: `±${simulationError.toFixed(1)} pts`, name: `Precision of ${LANDINGS.toLocaleString("en-US")} landings`, detail: "95% interval, worst case. Mark: ±3 points", miss: simulationError - 3 },
 ];
-const passed = verdicts.filter(Boolean).length;
-byId("verdict").textContent = passed === verdicts.length ? `All ${passed} checks pass.` : `${passed} of ${verdicts.length} checks pass.`;
-
-byId("checks").innerHTML = [
-  row("Sun and Earth positions vs JPL Horizons", "Within 0.01°", `${result.ephemerisMaxError}° worst`, verdicts[0]),
-  row("Sunlight vs NASA long-term map, on 80 m terrain", "Mean difference under 3 points, correlation above 0.95", `${sunlight.meanDifference} points, ${sunlight.correlation}`, verdicts[1]),
-  row("Earth in view vs NASA long-term map, on 80 m terrain", "Mean difference under 3 points, correlation above 0.95", `${earth.meanDifference} points, ${earth.correlation}`, verdicts[2]),
-  row("Sun's position at Athena's landing vs JPL Horizons. Not whether Athena had sunlight: see below", "Within 0.05°", `${athena.sunElevation}° vs ${athena.horizonsSunElevation}°`, verdicts[3]),
-  row(`Landing simulation: 95% interval of the chance from ${LANDINGS.toLocaleString("en-US")} landings`, "Within ±3 points", `±${simulationError.toFixed(1)} points worst case`, verdicts[4]),
-].join("");
+byId("verdict").textContent = `${checks.filter((check) => check.miss <= 0).length} of ${checks.length} pass`;
+byId("scorecard").innerHTML = checks.map(card).join("");
 
 byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "sun", "Sunlight");
 byId("earth-chart").innerHTML = scatter(points.map((p) => [100 * p[5], 100 * p[4]]), "earth", "Earth in view");
-byId("sunlight-stat").textContent = `Mean difference ${sunlight.meanDifference} points · correlation ${sunlight.correlation}`;
-byId("earth-stat").textContent = `Mean difference ${earth.meanDifference} points · correlation ${earth.correlation}`;
+byId("sunlight-stat").textContent = `Mean difference ${sunlight.meanDifference} points · r ${sunlight.correlation}`;
+byId("earth-stat").textContent = `Mean difference ${earth.meanDifference} points · r ${earth.correlation}`;
+const outliers = points.filter((p) => Math.abs(p[2] - p[3]) > 0.1 || Math.abs(p[4] - p[5]) > 0.1).length;
+byId("outliers").textContent = `${outliers} of ${points.length} spots differ by more than 10 points in sunlight or Earth in view.`;
 
-byId("athena").textContent =
-  `On March 6, 2025 at 17:28 UTC, the Athena lander touched down on Mons Mouton a few hundred meters from its aim ` +
-  `and ended up on its side in a small crater. MARGEN puts the Sun ${athena.sunElevation.toFixed(2)}° above a level ` +
-  `horizon at that moment; JPL Horizons gives ${athena.horizonsSunElevation.toFixed(2)}°. In the Sun's direction, ` +
-  `the hills on the 20 m terrain map rise only ${athena.terrainHorizon.toFixed(1)}°, so MARGEN would have called ` +
-  `this spot sunlit. It was not. The crater Athena landed in is about 20 m across, too small for the map to see. ` +
-  `The check above only tests where the Sun was, and MARGEN gets that right; it gets the outcome wrong. That is a ` +
-  `limit of this kind of data, and it is listed below.`;
+byId("athena-sun").textContent = `${athena.sunElevation.toFixed(2)}° high`;
+byId("athena-sun-detail").textContent = `JPL Horizons: ${athena.horizonsSunElevation.toFixed(2)}°. Right.`;
+byId("athena-hills").textContent = `Hills rise only ${athena.terrainHorizon.toFixed(1)}° toward the Sun on the 20 m map. Wrong.`;
 
 onThemeChange();

@@ -33,104 +33,98 @@
       <section class="intro">
         <h1>Checked against NASA</h1>
         <p>
-          MARGEN's numbers come from NASA's laser-measured lunar terrain and JPL's planetary ephemerides. Before computing
-          any result, we wrote down what agreeing with NASA would mean. This is how it went, including the mark we
-          missed. The chance the mission works has no NASA reference to check against: only its inputs are tested here.
+          We set each pass mark before measuring. The inputs are checked against NASA and JPL; the chance the mission
+          works has no NASA reference to compare with.
         </p>
       </section>
 
       <section class="full">
-        <h2>Pass marks, set before measuring</h2>
-        <p class="verdict" id="verdict"></p>
-        <table class="checks">
-          <thead>
-            <tr><th>Check</th><th>Pass mark</th><th>Result</th><th></th></tr>
-          </thead>
-          <tbody id="checks"></tbody>
-        </table>
+        <div class="section-head">
+          <h2>Pass marks, set before measuring</h2>
+          <p class="verdict" id="verdict"></p>
+        </div>
+        <div class="scorecard" id="scorecard"></div>
       </section>
 
       <section class="half">
-        <h2>Sunlight, 2008–2026</h2>
+        <h2>Sunlight share</h2>
         <div class="scatter" id="sunlight-chart"></div>
         <p class="stat" id="sunlight-stat"></p>
       </section>
       <section class="half">
-        <h2>Earth in view, 2008–2026</h2>
+        <h2>Earth-in-view share</h2>
         <div class="scatter" id="earth-chart"></div>
         <p class="stat" id="earth-stat"></p>
       </section>
       <section class="full">
-        <p class="note">
-          Each dot is one of 160 random spots between 85°S and the south pole, averaged from 2008 to 2026, a full 18.6-year
-          cycle of the Moon's orbit. Across: NASA's long-term maps (LOLA AVGVISIB, PGDA). Up:
-          MARGEN's method on NASA's 80 m terrain and JPL DE440, seen from the ground. The navigator adds 20 m terrain
-          near each site and a 2 m lander; that finer terrain is not tested here. On the diagonal, the two agree. NASA
-          counts Earth in view when any
-          part of Earth shows; MARGEN does the same here, and in the navigator it asks for Earth's center, which is
-          stricter. A few spots differ by more than 10 points, likely on steep slopes and rims where small terrain
-          details decide whether the Sun or Earth clears the horizon.
-          <a href="/data/validation.json">Download the 160 points</a>.
-        </p>
+        <p class="note">Each dot is a random spot near the south pole, 2008–2026. On the diagonal, MARGEN and NASA agree.</p>
+        <details class="more">
+          <summary>How this comparison was made</summary>
+          <ul>
+            <li>160 random spots between 85°S and the pole, averaged over 18.6 years, a full cycle of the Moon's orbit.</li>
+            <li>Across: NASA's long-term maps (LOLA AVGVISIB, PGDA). Up: MARGEN's method on NASA's 80 m terrain, from the ground.</li>
+            <li>The navigator adds 20 m terrain near each site and a 2 m lander. That finer terrain is not tested here.</li>
+            <li>Earth counts as in view when any part shows, as in NASA's map. The navigator asks for Earth's center.</li>
+            <li id="outliers"></li>
+          </ul>
+          <a href="/data/validation.json">Download the 160 points</a>
+        </details>
       </section>
 
-      <section class="full prose">
-        <h2>The Athena landing, March 6, 2025</h2>
-        <p id="athena"></p>
+      <section class="full">
+        <h2>Athena, March 6, 2025, 17:28 UTC</h2>
+        <div class="athena">
+          <div>
+            <span class="field-label">Where the Sun was</span>
+            <strong id="athena-sun"></strong>
+            <span id="athena-sun-detail"></span>
+          </div>
+          <div>
+            <span class="field-label">What MARGEN would say</span>
+            <strong>Sunlit</strong>
+            <span id="athena-hills"></span>
+          </div>
+          <div>
+            <span class="field-label">What happened</span>
+            <strong>In shadow</strong>
+            <span>On its side in a crater about 20 m across: too small for a 20 m map.</span>
+          </div>
+        </div>
       </section>
 
-      <section class="half prose">
+      <section class="half">
         <h2>How it works</h2>
-        <ol>
-          <li>
-            <strong>Terrain.</strong> For every 20 m spot in a 2 × 2 km site, MARGEN traces the horizon in 360
-            directions across NASA LRO LOLA terrain: 20 m detail nearby, 80 m out to 250 km, with the Moon's curvature.
-          </li>
-          <li>
-            <strong>Sky.</strong> JPL DE440 ephemerides (NAIF SPICE) give the Sun and Earth every hour of
-            2027. Sunlight counts the visible part of the Sun's disc; Earth in view needs Earth's center above the
-            terrain. Solar panels and antenna sit 2 m above the ground.
-          </li>
-          <li>
-            <strong>Landings.</strong> 1,000 landing points scatter around the aim with a 100 m typical miss: half fall
-            closer than that. A landing works if the ground slopes 10° or less across 40 m; in its first 24 hours the Sun is up
-            at least 50% of the time and Earth is in view at least 30%; and over its first 14 days it meets the same
-            two shares. Landing is at 00:00 UTC. With 1,000 landings the chance is accurate to
-            ±3.1 points or better (95%).
-          </li>
+        <ol class="steps">
+          <li><strong>Terrain</strong><span>Horizon in 360 directions for every 20 m spot, on NASA LOLA terrain out to 250 km.</span></li>
+          <li><strong>Sky</strong><span>Sun and Earth every hour of 2027 from JPL DE440, seen from 2 m above the ground.</span></li>
+          <li><strong>Landings</strong><span>1,000 landings, 100 m typical miss, checked for slope, sunlight and Earth in view.</span></li>
         </ol>
       </section>
 
-      <section class="half prose">
-        <h2>What it doesn't model</h2>
-        <ul>
-          <li>
-            Rocks, small craters and slopes smaller than the 20 m map spots. Athena's crater is one of them. Slope is
-            measured across 40 m, so ground that passes can still be too steep at the scale of a lander.
-          </li>
-          <li>Lander tilt, dust, temperature and batteries.</li>
-          <li>Radio links. Earth in view is a clear line to Earth; it does not check antennas or ground stations.</li>
-          <li>Light during the descent, and landing times other than 00:00 UTC.</li>
-          <li>How long the lander survives in the dark. The sunlight needs are shares of time, not unbroken hours.</li>
-          <li>
-            Real landing errors are not the same in every direction, and some recent landers have missed by more. MARGEN
-            uses a 100 m typical miss in every direction.
-          </li>
-          <li>Terrain more than 250 km away, or north of 80°S.</li>
+      <section class="half">
+        <h2>Not covered</h2>
+        <ul class="limits">
+          <li>Rocks and craters under 20 m</li>
+          <li>Slopes shorter than 40 m</li>
+          <li>Batteries, cold and dust</li>
+          <li>Radio links and ground stations</li>
+          <li>Light during the descent</li>
+          <li>Landing hours other than 00:00 UTC</li>
+          <li>Misses larger than 100 m</li>
+          <li>Terrain past 250 km or north of 80°S</li>
         </ul>
       </section>
 
-      <section class="full prose">
+      <section class="full">
         <h2>Data and references</h2>
         <ul class="refs">
-          <li>NASA LRO LOLA south pole elevation models, 20 m and 80 m (PGDA, NASA GSFC): <a href="https://pgda.gsfc.nasa.gov/products/90">pgda.gsfc.nasa.gov/products/90</a></li>
-          <li>NASA LOLA average illumination and Earth visibility maps, AVGVISIB (PGDA): <a href="https://pgda.gsfc.nasa.gov/products/69">pgda.gsfc.nasa.gov/products/69</a></li>
-          <li>JPL DE440 ephemerides and lunar frame kernels via NAIF SPICE: <a href="https://naif.jpl.nasa.gov/pub/naif/generic_kernels/">naif.jpl.nasa.gov</a></li>
-          <li>JPL Horizons API: <a href="https://ssd.jpl.nasa.gov/horizons/">ssd.jpl.nasa.gov/horizons</a></li>
-          <li>Wueller et al. (2026). Assessing potential landing sites with favorable illumination and accessible, potentially volatile-rich permanently shadowed regions within Artemis candidate landing regions. JGR Planets 131, e2025JE009434. Data: <a href="https://doi.org/10.5281/zenodo.17084058">doi.org/10.5281/zenodo.17084058</a>, CC BY 4.0.</li>
-          <li>Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081.</li>
-          <li>Barker, M. K. et al. (2021). Improved LOLA elevation maps for south pole landing sites: error estimates and their impact on illumination conditions. Planetary and Space Science 203, 105119.</li>
-          <li>Software: NumPy, SciPy, SpiceyPy, tifffile, fsspec, Vite, TypeScript. Font: Geist (SIL Open Font License).</li>
+          <li>NASA LRO LOLA south pole elevation models, 20 m and 80 m, PGDA: <a href="https://pgda.gsfc.nasa.gov/products/90">products/90</a></li>
+          <li>NASA LOLA average illumination and Earth visibility maps, AVGVISIB, PGDA: <a href="https://pgda.gsfc.nasa.gov/products/69">products/69</a></li>
+          <li>JPL DE440 ephemerides and lunar frames via <a href="https://naif.jpl.nasa.gov/pub/naif/generic_kernels/">NAIF SPICE</a>; <a href="https://ssd.jpl.nasa.gov/horizons/">JPL Horizons</a></li>
+          <li>Wueller et al. (2026), JGR Planets 131, e2025JE009434. Data: <a href="https://doi.org/10.5281/zenodo.17084058">Zenodo</a>, CC BY 4.0</li>
+          <li>Mazarico, E. et al. (2011). Illumination conditions of the lunar polar regions using LOLA topography. Icarus 211, 1066–1081</li>
+          <li>Barker, M. K. et al. (2021). Improved LOLA elevation maps for south pole landing sites. Planetary and Space Science 203, 105119</li>
+          <li>NumPy, SciPy, SpiceyPy, tifffile, fsspec, Vite, TypeScript. Geist font, SIL Open Font License</li>
         </ul>
       </section>
     </main>
