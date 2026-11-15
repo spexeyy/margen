@@ -39,6 +39,7 @@ export function datePicker(firstDay: number, dates: number, pick: (date: number)
       if (!cell.disabled) {
         cell.style.setProperty("--chance", String(chances[date]));
         cell.classList.toggle("good", chances[date] >= GOOD_CHANCE);
+        cell.classList.toggle("some", chances[date] > 0 && chances[date] < GOOD_CHANCE);
         cell.setAttribute("aria-pressed", String(date === current));
         cell.title = `${percent(chances[date])} chance`;
         cell.onclick = () => {

@@ -598,26 +598,25 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
-.days button:hover:not(:disabled) {
+.days button:hover:not(:disabled, [aria-pressed="true"]) {
   background: var(--line);
 }
 
-.days button::after {
+.days button.good::after,
+.days button.some::after {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: 5px;
-  width: 4px;
-  height: 4px;
-  margin-left: -2px;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
   border-radius: 50%;
   background: var(--muted);
-  opacity: var(--chance);
 }
 
 .days button.good::after {
   background: var(--amber);
-  opacity: 1;
 }
 
 .days button[aria-pressed="true"] {
@@ -629,10 +628,6 @@ h2 {
 .days button:disabled {
   color: var(--line-strong);
   cursor: default;
-}
-
-.days button:disabled::after {
-  display: none;
 }
 
 .dot-legend {
