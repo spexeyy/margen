@@ -2,7 +2,7 @@ import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 import "./style.css";
 import { loadEphemeris, loadHorizons, loadIndex, loadSite } from "./data";
-import type { Site } from "./data";
+import type { Site, SiteData } from "./data";
 import { datePicker } from "./datePicker";
 import { siteMenu } from "./siteMenu";
 import { drawSky, drawTimeline, hoursUntilChange, withVisibility } from "./horizon";
@@ -14,10 +14,35 @@ import { EARTH, Observer, SUN, toLonLat, toXY } from "./sky";
 import { isLight, onThemeChange } from "./theme";
 
 const DAY_MS = 86400000;
+const DEFAULT_SITE = "mouton";
 
 const index = await loadIndex();
-const [ephemeris, sites] = await Promise.all([loadEphemeris(), Promise.all(index.sites.map(loadSite))]);
-const missions = new Map(sites.map((data) => [data.site.id, new Mission(data, index.days)]));
+const sites = new Map<string, SiteData>();
+const missions = new Map<string, Mission>();
+const loading = new Map<string, Promise<void>>();
+
+function ensure(id: string): Promise<void> {
+  if (!loading.has(id)) {
+    const site = index.sites.find((s) => s.id === id)!;
+    loading.set(
+      id,
+      loadSite(site).then((data) => {
+        sites.set(id, data);
+        missions.set(id, new Mission(data, index.days));
+      }),
+    );
+  }
+  return loading.get(id)!;
+}
+
+const requested = new URLSearchParams(location.search).get("site");
+const state = {
+  site: index.sites.some((site) => site.id === requested) ? requested! : DEFAULT_SITE,
+  date: 14,
+  aim: [0, 0] as [number, number],
+};
+const dates = index.days - WINDOW_DAYS + 1;
+const [ephemeris] = await Promise.all([loadEphemeris(), ensure(state.site)]);
 const shades = new Map<string, HTMLCanvasElement>();
 const horizons = new Map<string, Uint8Array>();
 const windows = new Map<string, Window>();
@@ -43,8 +68,6 @@ let lastFrame = 0;
 const calendar = byId("calendar");
 const ranking = byId("ranking");
 
-const state = { site: index.sites[0].id, date: 14, aim: [0, 0] as [number, number] };
-
 function bestAim(site: string, date: number): [number, number] {
   const key = `${site}:${date}`;
   if (!bestAims.has(key)) bestAims.set(key, missions.get(site)!.bestAim(date));
@@ -65,16 +88,13 @@ function zoneOf(site: string, date: number): HTMLCanvasElement {
 
 function shadeOf(site: string): HTMLCanvasElement {
   const key = `${site}:${isLight()}`;
-  const data = sites.find((s) => s.site.id === site)!;
+  const data = sites.get(site)!;
   if (!shades.has(key)) shades.set(key, shade(data.ground, index.size, data.site.pixel));
   return shades.get(key)!;
 }
 
 function readUrl() {
   const params = new URLSearchParams(location.search);
-  const site = params.get("site");
-  if (site && missions.has(site)) state.site = site;
-  const dates = missions.get(state.site)!.dates;
   const date = params.get("date");
   if (date) state.date = Math.min(dates - 1, Math.max(0, Math.round((Date.parse(`${date}T00:00:00Z`) - firstDay) / DAY_MS) || 0));
   const aim = params.get("aim")?.split(",").map(Number);
@@ -102,7 +122,7 @@ function event(name: string, up: boolean, hours: number | null) {
 }
 
 async function renderHorizon() {
-  const data = sites.find((s) => s.site.id === state.site)!;
+  const data = sites.get(state.site)!;
   if (!horizons.has(state.site)) horizons.set(state.site, await loadHorizons(data.site));
   const mission = missions.get(state.site)!;
   const cell = mission.cell(...state.aim);
@@ -211,8 +231,9 @@ function renderLocator() {
 function renderRanking() {
   renderLocator();
   byId("ranking-date").textContent = label(state.date, { month: "long", day: "numeric", year: "numeric" });
-  const rows = sites.map(({ site }, order) => {
-    const mission = missions.get(site.id)!;
+  const rows = index.sites.map((site, order) => {
+    const mission = missions.get(site.id);
+    if (!mission) return { site, chance: -1, late: -1, order };
     const aim = bestAim(site.id, state.date);
     const chance = mission.chance(state.date, ...aim);
     const late = chance < GOOD_CHANCE ? -1 : mission.slipDays(state.date, ...aim);
@@ -221,14 +242,16 @@ function renderRanking() {
   rows.sort((a, b) => b.chance - a.chance || b.late - a.late || a.order - b.order);
   ranking.replaceChildren(
     ...rows.map(({ site, chance, late }) => {
-      const slip = late < 0 ? "Not a good date" : late === 0 ? "Only on this date" : `Up to ${late} ${late === 1 ? "day" : "days"} late`;
+      const loaded = chance >= 0;
+      const slip = !loaded ? "Loading" : late < 0 ? "Not a good date" : late === 0 ? "Only on this date" : `Up to ${late} ${late === 1 ? "day" : "days"} late`;
       const row = document.createElement("tr");
       row.dataset.site = site.id;
       row.title = site.source;
-      row.innerHTML = `<td><button type="button" aria-pressed="${site.id === state.site}">${site.name}</button></td><td class="number chance-cell${chance >= GOOD_CHANCE ? " good" : ""}">${percent(chance)}</td><td>${slip}</td>`;
+      row.innerHTML = `<td><button type="button" aria-pressed="${site.id === state.site}">${site.name}</button></td><td class="number chance-cell${chance >= GOOD_CHANCE ? " good" : ""}">${loaded ? percent(chance) : "…"}</td><td>${slip}</td>`;
       return row;
     }),
   );
+  menu.render(state.site, (id) => (missions.has(id) ? percent(missions.get(id)!.chance(state.date, ...bestAim(id, state.date))) : "…"));
 }
 
 function northOf(site: Site, extent: number): [number, number] {
@@ -240,7 +263,7 @@ function northOf(site: Site, extent: number): [number, number] {
 }
 
 function renderMap(mission: Mission, outcomes: Uint8Array) {
-  const data = sites.find((s) => s.site.id === state.site)!;
+  const data = sites.get(state.site)!;
   const landed = data.site.landed;
   const marker = landed
     ? (([x, y]) => ({ x: x - data.site.x0, y: data.site.y0 - y, label: landed.label }))(toXY(landed.lon, landed.lat))
@@ -258,12 +281,12 @@ function renderMap(mission: Mission, outcomes: Uint8Array) {
 }
 
 function aimLonLat(): [number, number] {
-  const site = sites.find((s) => s.site.id === state.site)!.site;
+  const site = sites.get(state.site)!.site;
   return toLonLat(site.x0 + state.aim[0], site.y0 - state.aim[1]);
 }
 
 function renderAim(cell: number) {
-  const data = sites.find((s) => s.site.id === state.site)!;
+  const data = sites.get(state.site)!;
   const [lon, lat] = aimLonLat();
   const [x, y] = [data.site.x0 + state.aim[0], data.site.y0 - state.aim[1]];
   byId("aim-coords").textContent = `${Math.abs(lat).toFixed(4)}° ${lat < 0 ? "S" : "N"}, ${lon.toFixed(3)}° E`;
@@ -279,7 +302,6 @@ function render() {
 
   renderMap(mission, outcomes);
   renderAim(cell);
-  menu.render(state.site, (id) => percent(missions.get(id)!.chance(state.date, ...bestAim(id, state.date))));
   byId("count").textContent = (chance * LANDINGS).toLocaleString("en-US");
   const slope = `${mission.slope[cell].toFixed(1)}°`;
   byId("summary").textContent = `${percent(chance)} chance the mission works. Slope ${slope}. On landing day, Sun ${percent(window.landingSun[cell])} and Earth ${percent(window.landingEarth[cell])}. Over 14 days, sunlight ${percent(window.sunlight[cell])} and Earth in view ${percent(window.earth[cell])}.`;
@@ -313,13 +335,16 @@ function update(change: Partial<typeof state>) {
   if (dateChanged || siteChanged) renderRanking();
 }
 
-const menu = siteMenu(index.sites, (id) => update({ site: id, aim: bestAim(id, state.date) }));
+async function select(site: string) {
+  await ensure(site);
+  update({ site, aim: bestAim(site, state.date) });
+}
 
-const firstMission = missions.get(index.sites[0].id)!;
-const picker = datePicker(firstDay, firstMission.dates, (date) => update({ date }));
+const menu = siteMenu(index.sites, select);
+const picker = datePicker(firstDay, dates, (date) => update({ date }));
 for (const button of document.querySelectorAll<HTMLButtonElement>("[data-shift]")) {
   button.addEventListener("click", () => {
-    update({ date: Math.min(firstMission.dates - 1, Math.max(0, state.date + Number(button.dataset.shift))) });
+    update({ date: Math.min(dates - 1, Math.max(0, state.date + Number(button.dataset.shift))) });
   });
 }
 calendar.addEventListener("click", (event) => {
@@ -328,11 +353,11 @@ calendar.addEventListener("click", (event) => {
 });
 byId("locator").addEventListener("click", (event) => {
   const site = (event.target as SVGElement).dataset.site;
-  if (site !== undefined) update({ site, aim: bestAim(site, state.date) });
+  if (site !== undefined) void select(site);
 });
 ranking.addEventListener("click", (event) => {
   const site = (event.target as HTMLElement).closest("tr")?.dataset.site;
-  if (site !== undefined) update({ site, aim: bestAim(site, state.date) });
+  if (site !== undefined) void select(site);
 });
 function setPlaying(value: boolean) {
   playing = value;
@@ -397,3 +422,4 @@ onThemeChange(render);
 readUrl();
 render();
 renderRanking();
+for (const site of index.sites) void ensure(site.id).then(renderRanking);

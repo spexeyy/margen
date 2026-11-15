@@ -24,7 +24,7 @@ Built for the NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navi
 - **Drag the aim point** on a 2 × 2 km terrain map. The amber zone is flat ground with enough sunlight and Earth in view; each dot is one possible landing.
 - **Change the landing date** (January 1 to December 18, 2027) or let the launch slip a week, and see the next good date.
 - **See what the lander sees:** the terrain horizon in every direction, the paths of the Sun and Earth over the next 14 days, and when they set. A spot a few hundred meters away can fail because the Sun hides behind a hill.
-- **Share any state** with a link: `?site=ridge&date=2027-01-15&aim=1630,1370`.
+- **Share any state** with a link: `?site=mouton&date=2027-01-15&aim=890,950`.
 
 ## How it works
 
