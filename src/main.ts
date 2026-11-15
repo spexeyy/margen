@@ -160,9 +160,7 @@ function renderCalendar(mission: Mission, chances: number[]) {
       ...Array.from({ length: mission.dates }, (_, date) => {
         const button = document.createElement("button");
         button.dataset.date = String(date);
-        const day = Number(label(date, { day: "numeric" }));
-        if (day === 1) button.dataset.tick = label(date);
-        else if ([8, 15, 22].includes(day)) button.dataset.tick = String(day);
+        if (label(date, { day: "numeric" }) === "1") button.dataset.tick = label(date, { month: "short" });
         return button;
       }),
     );
@@ -197,15 +195,17 @@ function renderWhen(mission: Mission, chance: number) {
 }
 
 function renderLocator() {
-  const reach = toXY(0, -84)[1];
+  const reach = toXY(0, -83)[1];
   const at = (x: number, y: number) => [190 + (95 * x) / reach, 110 - (95 * y) / reach];
   const rings = [-88, -86, -84].map((lat) => `<circle cx="190" cy="110" r="${(95 * toXY(0, lat)[1]) / reach}" class="ring"/>`);
   const dots = index.sites.map((site) => {
     const [x, y] = at(...toXY(site.lon, site.lat));
+    const current = site.id === state.site;
     const left = x < 190;
-    return `<circle cx="${x}" cy="${y}" r="4" class="${site.id === state.site ? "current" : "site"}"/><text x="${left ? x - 8 : x + 8}" y="${y + 4}" text-anchor="${left ? "end" : "start"}">${site.name}</text>`;
+    const name = current ? `<text x="${left ? x - 9 : x + 9}" y="${y + 4}" text-anchor="${left ? "end" : "start"}">${site.name}</text>` : "";
+    return `<circle cx="${x}" cy="${y}" r="5" class="${current ? "current" : "site"}" data-site="${site.id}"><title>${site.name}</title></circle>${name}`;
   });
-  byId("locator").innerHTML = `<svg viewBox="0 0 380 220" role="img" aria-label="Map of the lunar south pole with the four landing sites">
+  byId("locator").innerHTML = `<svg viewBox="0 0 380 220" role="img" aria-label="Map of the lunar south pole with the ${index.sites.length} landing sites">
     ${rings.join("")}
     <path d="M185 110h10M190 105v10" class="ring"/>
     <text x="190" y="10" text-anchor="middle">Toward Earth</text>
@@ -228,7 +228,7 @@ function renderCards() {
       const card = document.createElement("button");
       card.className = "card";
       card.setAttribute("aria-pressed", String(site.id === state.site));
-      card.innerHTML = `<span class="card-name">${site.name}</span><span class="card-value">${percent(chance)}</span><span class="card-label">Chance the mission works, at its safest spot</span><span class="card-fact">${slip}</span><span class="card-fact">Good dates Jan–Mar: ${good}</span><span class="card-fact">Flat ground: ${percent(flat)} of the map</span><span class="card-source">${site.source}</span>`;
+      card.innerHTML = `<span class="card-name">${site.name}</span><span class="card-value">${percent(chance)}</span><span class="card-label">Chance the mission works, at its safest spot</span><span class="card-fact">${slip}</span><span class="card-fact">Good dates in 2027: ${good}</span><span class="card-fact">Flat ground: ${percent(flat)} of the map</span><span class="card-source">${site.source}</span>`;
       card.onclick = () => update({ site: site.id, aim: aim });
       return card;
     }),
@@ -239,9 +239,12 @@ async function countGoodDates() {
   for (const { site } of sites) {
     const mission = missions.get(site.id)!;
     let count = 0;
+    let started = performance.now();
     for (let date = 0; date < mission.dates; date++) {
       count += Number(mission.chance(date, ...bestAim(site.id, date)) >= GOOD_CHANCE);
+      if (performance.now() - started < 8) continue;
       await new Promise((resolve) => setTimeout(resolve));
+      started = performance.now();
     }
     goodDates.set(site.id, count);
     renderCards();
@@ -342,6 +345,10 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-shift]"
 calendar.addEventListener("click", (event) => {
   const date = (event.target as HTMLElement).dataset.date;
   if (date !== undefined) update({ date: Number(date) });
+});
+byId("locator").addEventListener("click", (event) => {
+  const site = (event.target as SVGElement).dataset.site;
+  if (site !== undefined) update({ site, aim: bestAim(site, state.date) });
 });
 function setPlaying(value: boolean) {
   playing = value;

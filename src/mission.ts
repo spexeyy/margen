@@ -98,37 +98,49 @@ export class Mission {
       const [dx, dy] = gradient(data.ground, this.size, this.pixel, Math.floor(p / this.size), p % this.size);
       return (Math.atan(Math.hypot(dx, dy)) * 180) / Math.PI;
     });
-    for (let date = 0; date < this.dates; date++) this.masks.push(Uint8Array.from(this.window(date).margin, (m) => Number(m >= 0)));
   }
 
+  private mask(date: number): Uint8Array {
+    if (!this.masks[date]) {
+      const margin = this.window(date).margin;
+      const mask = new Uint8Array(margin.length);
+      for (let p = 0; p < mask.length; p++) mask[p] = Number(margin[p] >= 0);
+      this.masks[date] = mask;
+    }
+    return this.masks[date];
+  }
+
+  // Plain loops: this runs for every site and landing date.
   window(date: number): Window {
     const cells = this.size * this.size;
+    const { sunlight: sun, earth: home } = this.data;
     const sunlight = new Float32Array(cells);
     const earth = new Float32Array(cells);
+    const landingSun = new Float32Array(cells);
+    const landingEarth = new Float32Array(cells);
+    const margin = new Float32Array(cells);
     for (let day = date; day < date + WINDOW_DAYS; day++) {
       for (let p = 0; p < cells; p++) {
-        sunlight[p] += this.data.sunlight[day * cells + p];
-        earth[p] += this.data.earth[day * cells + p];
+        sunlight[p] += sun[day * cells + p];
+        earth[p] += home[day * cells + p];
       }
     }
     const scale = 1 / (255 * WINDOW_DAYS);
-    const window = {
-      sunlight: sunlight.map((v) => v * scale),
-      earth: earth.map((v) => v * scale),
-      landingSun: Float32Array.from(this.data.sunlight.subarray(date * cells, (date + 1) * cells), (v) => v / 255),
-      landingEarth: Float32Array.from(this.data.earth.subarray(date * cells, (date + 1) * cells), (v) => v / 255),
-    };
-    const margin = window.sunlight.map(
-      (s, p) =>
+    for (let p = 0; p < cells; p++) {
+      sunlight[p] *= scale;
+      earth[p] *= scale;
+      landingSun[p] = sun[date * cells + p] / 255;
+      landingEarth[p] = home[date * cells + p] / 255;
+      margin[p] =
         Math.min(
-          s / NEEDS_SUNLIGHT,
-          window.landingSun[p] / NEEDS_SUNLIGHT,
-          window.earth[p] / NEEDS_EARTH,
-          window.landingEarth[p] / NEEDS_EARTH,
+          sunlight[p] / NEEDS_SUNLIGHT,
+          landingSun[p] / NEEDS_SUNLIGHT,
+          earth[p] / NEEDS_EARTH,
+          landingEarth[p] / NEEDS_EARTH,
           MAX_SLOPE_DEG / this.slope[p],
-        ) - 1,
-    );
-    return { ...window, margin };
+        ) - 1;
+    }
+    return { sunlight, earth, landingSun, landingEarth, margin };
   }
 
   clampAim(x: number, y: number): [number, number] {
@@ -144,7 +156,7 @@ export class Mission {
   }
 
   outcomes(date: number, x: number, y: number): Uint8Array {
-    const mask = this.masks[date];
+    const mask = this.mask(date);
     const out = new Uint8Array(LANDINGS);
     for (let i = 0; i < LANDINGS; i++) out[i] = mask[this.cell(x + offsets[2 * i], y + offsets[2 * i + 1])];
     return out;
@@ -160,7 +172,8 @@ export class Mission {
     const first = Math.ceil(EDGE_MARGIN_M / this.pixel);
     const last = this.size - first;
     const chances = new Float32Array(this.size * this.size);
-    const mask = this.masks[date];
+    const mask = this.mask(date);
+    if (!mask.includes(1)) return best;
     const clamp = (i: number) => Math.min(this.size - 1, Math.max(0, i));
     for (let row = first; row < last; row++) {
       for (let col = first; col < last; col++) {
