@@ -1037,6 +1037,7 @@ h2 {
 }
 
 .ranking-row:hover {
+  border-color: var(--line);
   background: var(--hover);
 }
 
