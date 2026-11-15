@@ -1,6 +1,6 @@
 {
   "firstDay": "2027-01-01",
-  "days": 103,
+  "days": 365,
   "size": 100,
   "landerHeight": 2.0,
   "horizon": {
@@ -22,8 +22,8 @@
     },
     {
       "id": "mouton",
-      "note": "Mountain where the Athena lander touched down in 2025",
-      "name": "Mons Mouton",
+      "note": "Where the Athena lander touched down in 2025",
+      "name": "Mons Mouton, Athena's aim",
       "lon": 29.13,
       "lat": -84.78,
       "source": "Athena (IM-2) aim point, LROC",
@@ -37,25 +37,102 @@
       "pixel": 20.0
     },
     {
-      "id": "gerlache",
-      "note": "Sunniest spot of an Artemis candidate region, on a steep crater rim",
-      "name": "de Gerlache rim",
-      "lon": 291.496,
-      "lat": -88.313,
-      "source": "Best-lit spot within 5 km of the Artemis candidate region de Gerlache Rim 2, from NASA AVGVISIB",
-      "x0": -48620.0,
-      "y0": 19760.0,
+      "id": "mouton-artemis",
+      "note": "Artemis III candidate region",
+      "name": "Mons Mouton",
+      "lon": 31.8506,
+      "lat": -85.416,
+      "source": "Candidate landing site MMO01, Wueller et al. 2026",
+      "x0": 72380.0,
+      "y0": 119140.0,
       "pixel": 20.0
     },
     {
-      "id": "nobile",
-      "note": "Artemis candidate region",
-      "name": "Nobile rim",
-      "lon": 37.27,
-      "lat": -85.27,
-      "source": "Best-lit spot within 5 km of the Artemis candidate region Nobile Rim 1, from NASA AVGVISIB",
-      "x0": 85900.0,
-      "y0": 115220.0,
+      "id": "plateau",
+      "note": "Artemis III candidate region",
+      "name": "Mons Mouton Plateau",
+      "lon": 20.8866,
+      "lat": -84.6863,
+      "source": "Candidate landing site MMP04, Wueller et al. 2026",
+      "x0": 56480.0,
+      "y0": 151660.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "malapert",
+      "note": "Artemis III candidate region",
+      "name": "Malapert Massif",
+      "lon": 2.0564,
+      "lat": -85.9919,
+      "source": "Candidate landing site MMA_K2023, Wueller et al. 2026",
+      "x0": 3360.0,
+      "y0": 122520.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "nobile1",
+      "note": "Artemis III candidate region",
+      "name": "Nobile Rim 1",
+      "lon": 36.9168,
+      "lat": -85.295,
+      "source": "Candidate landing site NR101, Wueller et al. 2026",
+      "x0": 84740.0,
+      "y0": 115140.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "nobile2",
+      "note": "Artemis III candidate region",
+      "name": "Nobile Rim 2",
+      "lon": 57.0082,
+      "lat": -83.6871,
+      "source": "Candidate landing site NR203, Wueller et al. 2026",
+      "x0": 159720.0,
+      "y0": 105360.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "haworth",
+      "note": "Artemis III candidate region",
+      "name": "Haworth",
+      "lon": 335.7598,
+      "lat": -87.0499,
+      "source": "Candidate landing site HW06, Wueller et al. 2026",
+      "x0": -37740.0,
+      "y0": 82600.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "gerlache2",
+      "note": "Artemis III candidate region",
+      "name": "de Gerlache Rim 2",
+      "lon": 291.1353,
+      "lat": -88.3891,
+      "source": "Candidate landing site dGR201, Wueller et al. 2026",
+      "x0": -46580.0,
+      "y0": 18620.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "slater",
+      "note": "Artemis III candidate region",
+      "name": "Slater Plain",
+      "lon": 127.857,
+      "lat": -87.1306,
+      "source": "Candidate landing site SP07, Wueller et al. 2026",
+      "x0": 67700.0,
+      "y0": -52400.0,
+      "pixel": 20.0
+    },
+    {
+      "id": "cabeus",
+      "note": "Artemis III candidate region",
+      "name": "Peak near Cabeus B",
+      "lon": 288.0581,
+      "lat": -83.5388,
+      "source": "Candidate landing site PCB05, Wueller et al. 2026",
+      "x0": -187480.0,
+      "y0": 61800.0,
       "pixel": 20.0
     }
   ]

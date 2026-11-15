@@ -11,11 +11,23 @@ from moon import RAW, body_positions, horizons, read_raster, read_window, to_lon
 OUT = Path(__file__).resolve().parents[1] / "public" / "data"
 DEM_20M = "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_20MPP_ADJ.TIF"
 FIRST_DAY = "2027-01-01"
-DAYS = 103
+DAYS = 365
 SIZE = 100
 NEAR_HALF_M = 12000
 LANDER_HEIGHT_M = 2.0
 HORIZON_MIN_DEG, HORIZON_STEP_DEG = -5.0, 0.1
+
+
+def artemis(id, name, site, lon, lat):
+    return {
+        "id": id,
+        "note": "Artemis III candidate region",
+        "name": name,
+        "lon": lon,
+        "lat": lat,
+        "source": f"Candidate landing site {site}, Wueller et al. 2026",
+    }
+
 
 SITES = [
     {
@@ -28,31 +40,23 @@ SITES = [
     },
     {
         "id": "mouton",
-        "note": "Mountain where the Athena lander touched down in 2025",
-        "name": "Mons Mouton",
+        "note": "Where the Athena lander touched down in 2025",
+        "name": "Mons Mouton, Athena's aim",
         "lon": 29.13,
         "lat": -84.78,
         "source": "Athena (IM-2) aim point, LROC",
         "landed": {"lon": 29.1957, "lat": -84.7906, "label": "Athena landed here, 2025"},
     },
-    {
-        "id": "gerlache",
-        "note": "Sunniest spot of an Artemis candidate region, on a steep crater rim",
-        "name": "de Gerlache rim",
-        "lon": 291.496,
-        "lat": -88.313,
-        "source": "Best-lit spot within 5 km of the Artemis candidate region de Gerlache Rim 2, from NASA AVGVISIB",
-    },
-    {
-        "id": "nobile",
-        "note": "Artemis candidate region",
-        "name": "Nobile rim",
-        "lon": 37.270,
-        "lat": -85.270,
-        "source": "Best-lit spot within 5 km of the Artemis candidate region Nobile Rim 1, from NASA AVGVISIB",
-    },
+    artemis("mouton-artemis", "Mons Mouton", "MMO01", 31.8506, -85.4160),
+    artemis("plateau", "Mons Mouton Plateau", "MMP04", 20.8866, -84.6863),
+    artemis("malapert", "Malapert Massif", "MMA_K2023", 2.0564, -85.9919),
+    artemis("nobile1", "Nobile Rim 1", "NR101", 36.9168, -85.2950),
+    artemis("nobile2", "Nobile Rim 2", "NR203", 57.0082, -83.6871),
+    artemis("haworth", "Haworth", "HW06", 335.7598, -87.0499),
+    artemis("gerlache2", "de Gerlache Rim 2", "dGR201", 291.1353, -88.3891),
+    artemis("slater", "Slater Plain", "SP07", 127.8570, -87.1306),
+    artemis("cabeus", "Peak near Cabeus B", "PCB05", 288.0581, -83.5388),
 ]
-
 
 def save(path, array):
     with gzip.open(path, "wb") as f:
