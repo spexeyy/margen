@@ -1258,8 +1258,12 @@ h2 {
   margin-bottom: 0;
 }
 
-.added-note {
-  margin: 16px 0 10px;
+.added-head {
+  margin-top: 28px;
+}
+
+.score.why {
+  grid-column: span 3;
 }
 
 .pass-count {
@@ -1277,7 +1281,7 @@ h2 {
 }
 
 .scorecard {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   background: none;
   border: none;
 }
@@ -1485,5 +1489,13 @@ h2 {
   .athena,
   .limits {
     grid-template-columns: 1fr;
+  }
+
+  .scorecard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .score.why {
+    grid-column: 1 / -1;
   }
 }

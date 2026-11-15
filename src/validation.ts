@@ -79,16 +79,16 @@ byId("scorecard").innerHTML = checks.map(card).join("");
 
 const sites = result.sites20m;
 const spots = `${sites.points.length} spots at ${sites.sites.length} sites`;
-byId("added-note").textContent =
-  `Added after the first checks, with the same pass mark: the navigator's 20 m terrain at the ${sites.sites.length} landing sites inside NASA's map. ` +
-  `MARGEN finds less sunlight than NASA at every site, so its chances lean cautious on sunlight. ` +
-  `On NASA's 80 m terrain the same spots already differ by ${sites.terrain80m.sunlight.meanDifference} points: crests and crater rims are harder to match than random spots, and the finer terrain hides the low Sun a little more.`;
-byId("added").innerHTML = [
-  { value: `${sites.sunlight.meanDifference} pts`, name: "Sunlight at landing sites", detail: `20 m terrain, ${spots}, r ${sites.sunlight.correlation}`, missed: missed(sites.sunlight) },
-  { value: `${sites.earth.meanDifference} pts`, name: "Earth in view at landing sites", detail: `20 m terrain, ${spots}, r ${sites.earth.correlation}`, missed: missed(sites.earth) },
-]
-  .map(card)
-  .join("");
+const added: Check[] = [
+  { value: `${sites.sunlight.meanDifference} pts`, name: "Sunlight", detail: `20 m terrain, ${spots}. r ${sites.sunlight.correlation}`, missed: missed(sites.sunlight) },
+  { value: `${sites.earth.meanDifference} pts`, name: "Earth in view", detail: `20 m terrain, ${spots}. r ${sites.earth.correlation}`, missed: missed(sites.earth) },
+];
+byId("added-count").textContent = `${added.filter((check) => check.missed === null).length} of ${added.length} pass`;
+byId("added").innerHTML =
+  added.map(card).join("") +
+  `<article class="score why"><span class="score-name">Why sunlight misses</span>` +
+  `<span class="score-detail">MARGEN finds less sunlight than NASA at all ${sites.sites.length} sites, so its chances lean cautious. ` +
+  `Crests and rims are hard to match: on NASA's 80 m terrain the same spots already differ by ${sites.terrain80m.sunlight.meanDifference} points, and 20 m terrain hides the low Sun a little more.</span></article>`;
 byId("sites-method").textContent = `Landing-site check: ${sites.points.length / sites.sites.length} random spots in each 2 × 2 km site south of 85°S (${sites.sites.join(", ")}), with the navigator's 20 m terrain near the site.`;
 
 byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "sun", "Sunlight");
