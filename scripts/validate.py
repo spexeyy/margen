@@ -7,11 +7,12 @@ import numpy as np
 import spiceypy as sp
 
 from build_sites import DEM_20M, NEAR_HALF_M, SITES
-from moon import EARTH_RADIUS_KM, RAW, body_positions, horizons, read_raster, read_window, to_xy, topocentric, visibility
+from moon import EARTH_RADIUS_KM, RAW, body_positions, horizons, read_raster, read_window, to_lonlat, to_xy, topocentric, visibility
 
 OUT = Path(__file__).resolve().parents[1] / "public" / "data" / "validation.json"
 AVGVISIB_SCALE = 4e-5
 ATHENA = {"lon": 29.1957, "lat": -84.7906, "time": "2025-03-06 17:28"}
+SITE_SAMPLES = 30
 CHECK_TIMES = [f"2027-{month:02d}-{day:02d} {hour:02d}:00" for month in (1, 2, 3) for day in (1, 15) for hour in (0, 12)]
 
 
@@ -82,9 +83,7 @@ def random_points(count, rng):
     return lon, lat
 
 
-def long_term_visibility(far, lon, lat, eye):
-    x, y = to_xy(lon, lat)
-    horizon = horizons(x, y, eye, far, far)
+def long_term_visibility(horizon, lon, lat, eye):
     start, end = sp.str2et("2008-01-01 00:00 UTC"), sp.str2et("2026-08-01 00:00 UTC")
     sunlight, earth, samples = np.zeros(len(lon)), np.zeros(len(lon)), 0
     for chunk in np.array_split(np.arange(start, end, 4 * 3600.0), 40):
@@ -104,11 +103,9 @@ def summary(ours, nasa):
     }
 
 
-def avgvisib_check(far):
-    lon, lat = random_points(160, np.random.default_rng(2026))
-    x, y = to_xy(lon, lat)
-    eye = far.sample(x, y)
-    sunlight, earth = long_term_visibility(far, lon, lat, eye)
+def against_nasa(x, y, horizon, eye):
+    lon, lat = to_lonlat(x, y)
+    sunlight, earth = long_term_visibility(horizon, lon, lat, eye)
     nasa_sun = read_raster(RAW / "AVGVISIB_85S_060M_201608.TIF").sample(x, y) * AVGVISIB_SCALE
     nasa_earth = read_raster(RAW / "AVGVISIB_85S_060M_201608_EARTH.TIF").sample(x, y) * AVGVISIB_SCALE
     return {
@@ -118,16 +115,46 @@ def avgvisib_check(far):
     }
 
 
+def avgvisib_check(far):
+    lon, lat = random_points(160, np.random.default_rng(2026))
+    x, y = to_xy(lon, lat)
+    eye = far.sample(x, y)
+    return against_nasa(x, y, horizons(x, y, eye, far, far), eye)
+
+
+def site_check(far):
+    rng = np.random.default_rng(2027)
+    covered = [site for site in SITES if site["lat"] <= -85]
+    xs, ys, eyes, profiles = [], [], [], []
+    for site in covered:
+        cx, cy = to_xy(site["lon"], site["lat"])
+        near = read_window(DEM_20M, cx, cy, NEAR_HALF_M, RAW / f"{site['id']}_20m.npz")
+        x = cx + rng.uniform(-1000, 1000, SITE_SAMPLES)
+        y = cy + rng.uniform(-1000, 1000, SITE_SAMPLES)
+        eye = near.sample(x, y)
+        xs.append(x)
+        ys.append(y)
+        eyes.append(eye)
+        profiles.append(horizons(x, y, eye, near, far))
+    x, y = np.concatenate(xs), np.concatenate(ys)
+    result = against_nasa(x, y, np.concatenate(profiles), np.concatenate(eyes))
+    eye80 = far.sample(x, y)
+    coarse = against_nasa(x, y, horizons(x, y, eye80, far, far), eye80)
+    return result | {"sites": [site["name"] for site in covered], "terrain80m": {k: coarse[k] for k in ("sunlight", "earth")}}
+
+
 def main():
     far = read_raster(RAW / "LDEM_80S_80MPP_ADJ.TIF")
     result = {
         "ephemerisMaxError": round(float(ephemeris_check(far)), 5),
         "athena": athena_check(far),
         "avgvisib": avgvisib_check(far),
+        "sites20m": site_check(far),
     }
     OUT.write_text(json.dumps(result))
-    print(json.dumps({k: v for k, v in result.items() if k != "avgvisib"}, indent=2))
-    print(json.dumps({k: result["avgvisib"][k] for k in ("sunlight", "earth")}, indent=2))
+    print(json.dumps({k: v for k, v in result.items() if k not in ("avgvisib", "sites20m")}, indent=2))
+    for key in ("avgvisib", "sites20m"):
+        print(key, json.dumps({k: result[key][k] for k in ("sunlight", "earth")}))
 
 
 if __name__ == "__main__":

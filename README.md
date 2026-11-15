@@ -54,11 +54,20 @@ From `scripts/validate.py`, shown on the validation page. Four of the five pass 
 | Sun elevation at Athena's landing, 2025-03-06 17:28 UTC | 2.464°, JPL Horizons 2.464° | Pass |
 | Landing simulation | ±3.1 points worst case | Fail, by 0.1 |
 
+Added after those checks, with the same pass mark: the navigator's 20 m terrain at the seven landing sites inside NASA's map (30 random spots per site, 2008–2026).
+
+| Check | Result | |
+|---|---|---|
+| Sunlight vs AVGVISIB at the landing sites | mean difference 4.94 points, correlation 0.912 | Fail |
+| Earth in view vs AVGVISIB at the landing sites | mean difference 2.91 points, correlation 0.978 | Pass |
+
+MARGEN finds less sunlight than NASA's map at every one of the seven sites, 3 to 7 points on average, so its chances lean cautious on sunlight. On NASA's 80 m terrain the same spots differ by 3.58 points: crests and crater rims are harder to match than random spots, and the finer terrain hides the low Sun a little more.
+
 Rebuilding the data on a second computer reproduced the first release's terrain, horizon, sunlight and Earth values for the ridge and Athena's aim exactly, and `validate.py` returned the same results.
 
 What these checks do not cover:
 
-- The AVGVISIB comparison runs the method on the 80 m terrain, seen from the ground. The 20 m terrain the navigator uses near each site is not tested.
+- Both AVGVISIB comparisons look from the ground; the navigator places the panels and antenna 2 m up.
 - The Athena check tests the Sun's position only. On the 20 m terrain the hills rise 0.8° in the Sun's direction, so MARGEN would have called the spot sunlit. It was not: the small crater Athena landed in is below the map's resolution.
 - The chance the mission works, the slope limit and the landing-day rules have no NASA reference to check against.
 

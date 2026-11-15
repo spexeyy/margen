@@ -13,6 +13,7 @@ interface Validation {
   ephemerisMaxError: number;
   athena: { time: string; sunAzimuth: number; sunElevation: number; horizonsSunElevation: number; terrainHorizon: number };
   avgvisib: { points: number[][]; sunlight: Summary; earth: Summary };
+  sites20m: { points: number[][]; sunlight: Summary; earth: Summary; sites: string[]; terrain80m: { sunlight: Summary } };
 }
 
 const SIZE = 360;
@@ -48,16 +49,16 @@ interface Check {
   value: string;
   name: string;
   detail: string;
-  miss: number;
+  missed: string | null;
 }
 
-function card({ value, name, detail, miss }: Check): string {
-  const status = miss <= 0 ? `<span class="status pass">✓ Pass</span>` : `<span class="status fail">✕ Missed by ${miss.toFixed(1)}</span>`;
+function card({ value, name, detail, missed }: Check): string {
+  const status = missed === null ? `<span class="status pass">✓ Pass</span>` : `<span class="status fail">✕ ${missed}</span>`;
   return `<article class="score">${status}<strong class="score-value">${value}</strong><span class="score-name">${name}</span><span class="score-detail">${detail}</span></article>`;
 }
 
-function passes(summary: Summary): boolean {
-  return summary.meanDifference < 3 && summary.correlation > 0.95;
+function missed(summary: Summary): string | null {
+  return summary.meanDifference < 3 && summary.correlation > 0.95 ? null : "Missed the mark";
 }
 
 const { sunlight, earth, points } = result.avgvisib;
@@ -67,14 +68,28 @@ const athenaGap = Math.abs(athena.sunElevation - athena.horizonsSunElevation);
 const simulationError = 196 * Math.sqrt(0.25 / LANDINGS);
 
 const checks: Check[] = [
-  { value: `${result.ephemerisMaxError}°`, name: "Sun and Earth positions", detail: "Worst of 48 against JPL Horizons. Mark: within 0.01°", miss: result.ephemerisMaxError < 0.01 ? 0 : 1 },
-  { value: `${sunlight.meanDifference} pts`, name: "Sunlight share", detail: `Against NASA's map, r ${sunlight.correlation}. Mark: under 3 points, r above 0.95`, miss: passes(sunlight) ? 0 : 1 },
-  { value: `${earth.meanDifference} pts`, name: "Earth-in-view share", detail: `Against NASA's map, r ${earth.correlation}. Mark: under 3 points, r above 0.95`, miss: passes(earth) ? 0 : 1 },
-  { value: `${athena.sunElevation}°`, name: "Sun height at Athena's landing", detail: `JPL Horizons: ${athena.horizonsSunElevation}°. Mark: within 0.05°`, miss: athenaGap < 0.05 ? 0 : 1 },
-  { value: `±${simulationError.toFixed(1)} pts`, name: `Precision of ${LANDINGS.toLocaleString("en-US")} landings`, detail: "95% interval, worst case. Mark: ±3 points", miss: simulationError - 3 },
+  { value: `${result.ephemerisMaxError}°`, name: "Sun and Earth positions", detail: "Worst of 48 against JPL Horizons. Mark: within 0.01°", missed: result.ephemerisMaxError < 0.01 ? null : "Missed the mark" },
+  { value: `${sunlight.meanDifference} pts`, name: "Sunlight share", detail: `Against NASA's map, r ${sunlight.correlation}. Mark: under 3 points, r above 0.95`, missed: missed(sunlight) },
+  { value: `${earth.meanDifference} pts`, name: "Earth-in-view share", detail: `Against NASA's map, r ${earth.correlation}. Mark: under 3 points, r above 0.95`, missed: missed(earth) },
+  { value: `${athena.sunElevation}°`, name: "Sun height at Athena's landing", detail: `JPL Horizons: ${athena.horizonsSunElevation}°. Mark: within 0.05°`, missed: athenaGap < 0.05 ? null : "Missed the mark" },
+  { value: `±${simulationError.toFixed(1)} pts`, name: `Precision of ${LANDINGS.toLocaleString("en-US")} landings`, detail: "95% interval, worst case. Mark: ±3 points", missed: simulationError <= 3 ? null : `Missed by ${(simulationError - 3).toFixed(1)}` },
 ];
-byId("verdict").textContent = `${checks.filter((check) => check.miss <= 0).length} of ${checks.length} pass`;
+byId("verdict").textContent = `${checks.filter((check) => check.missed === null).length} of ${checks.length} pass`;
 byId("scorecard").innerHTML = checks.map(card).join("");
+
+const sites = result.sites20m;
+const spots = `${sites.points.length} spots at ${sites.sites.length} sites`;
+byId("added-note").textContent =
+  `Added after the first checks, with the same pass mark: the navigator's 20 m terrain at the ${sites.sites.length} landing sites inside NASA's map. ` +
+  `MARGEN finds less sunlight than NASA at every site, so its chances lean cautious on sunlight. ` +
+  `On NASA's 80 m terrain the same spots already differ by ${sites.terrain80m.sunlight.meanDifference} points: crests and crater rims are harder to match than random spots, and the finer terrain hides the low Sun a little more.`;
+byId("added").innerHTML = [
+  { value: `${sites.sunlight.meanDifference} pts`, name: "Sunlight at landing sites", detail: `20 m terrain, ${spots}, r ${sites.sunlight.correlation}`, missed: missed(sites.sunlight) },
+  { value: `${sites.earth.meanDifference} pts`, name: "Earth in view at landing sites", detail: `20 m terrain, ${spots}, r ${sites.earth.correlation}`, missed: missed(sites.earth) },
+]
+  .map(card)
+  .join("");
+byId("sites-method").textContent = `Landing-site check: ${sites.points.length / sites.sites.length} random spots in each 2 × 2 km site south of 85°S (${sites.sites.join(", ")}), with the navigator's 20 m terrain near the site.`;
 
 byId("sunlight-chart").innerHTML = scatter(points.map((p) => [100 * p[3], 100 * p[2]]), "sun", "Sunlight");
 byId("earth-chart").innerHTML = scatter(points.map((p) => [100 * p[5], 100 * p[4]]), "earth", "Earth in view");
