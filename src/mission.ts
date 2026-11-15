@@ -7,6 +7,10 @@ export const NEEDS_SUNLIGHT = 0.5;
 export const NEEDS_EARTH = 0.3;
 export const MAX_SLOPE_DEG = 10;
 export const GOOD_CHANCE = 0.9;
+export const WORKS = 0;
+export const TOO_STEEP = 1;
+export const TOO_DARK = 2;
+export const EARTH_HIDDEN = 3;
 const EDGE_MARGIN_M = 250;
 const NEARBY_M = 200;
 
@@ -38,6 +42,8 @@ export interface Window {
   landingEarth: Float32Array;
   // How far each spot is from failing its tightest requirement: 0 or more works.
   margin: Float32Array;
+  // Which requirement is tightest where a landing fails: TOO_STEEP, TOO_DARK or EARTH_HIDDEN; WORKS otherwise.
+  cause: Uint8Array;
 }
 
 // Whole percent, never 0% or 100% unless it is exactly that.
@@ -119,6 +125,7 @@ export class Mission {
     const landingSun = new Float32Array(cells);
     const landingEarth = new Float32Array(cells);
     const margin = new Float32Array(cells);
+    const cause = new Uint8Array(cells);
     for (let day = date; day < date + WINDOW_DAYS; day++) {
       for (let p = 0; p < cells; p++) {
         sunlight[p] += sun[day * cells + p];
@@ -131,16 +138,14 @@ export class Mission {
       earth[p] *= scale;
       landingSun[p] = sun[date * cells + p] / 255;
       landingEarth[p] = home[date * cells + p] / 255;
-      margin[p] =
-        Math.min(
-          sunlight[p] / NEEDS_SUNLIGHT,
-          landingSun[p] / NEEDS_SUNLIGHT,
-          earth[p] / NEEDS_EARTH,
-          landingEarth[p] / NEEDS_EARTH,
-          MAX_SLOPE_DEG / this.slope[p],
-        ) - 1;
+      const flatRoom = MAX_SLOPE_DEG / this.slope[p];
+      const sunRoom = Math.min(sunlight[p], landingSun[p]) / NEEDS_SUNLIGHT;
+      const earthRoom = Math.min(earth[p], landingEarth[p]) / NEEDS_EARTH;
+      const tightest = Math.min(flatRoom, sunRoom, earthRoom);
+      margin[p] = tightest - 1;
+      cause[p] = tightest >= 1 ? WORKS : tightest === flatRoom ? TOO_STEEP : tightest === sunRoom ? TOO_DARK : EARTH_HIDDEN;
     }
-    return { sunlight, earth, landingSun, landingEarth, margin };
+    return { sunlight, earth, landingSun, landingEarth, margin, cause };
   }
 
   clampAim(x: number, y: number): [number, number] {
@@ -160,6 +165,12 @@ export class Mission {
     const out = new Uint8Array(LANDINGS);
     for (let i = 0; i < LANDINGS; i++) out[i] = mask[this.cell(x + offsets[2 * i], y + offsets[2 * i + 1])];
     return out;
+  }
+
+  causes(window: Window, x: number, y: number): number[] {
+    const counts = [0, 0, 0, 0];
+    for (let i = 0; i < LANDINGS; i++) counts[window.cause[this.cell(x + offsets[2 * i], y + offsets[2 * i + 1])]]++;
+    return counts;
   }
 
   chance(date: number, x: number, y: number): number {
