@@ -23,7 +23,6 @@ const horizons = new Map<string, Uint8Array>();
 const windows = new Map<string, Window>();
 const zones = new Map<string, HTMLCanvasElement>();
 const bestAims = new Map<string, [number, number]>();
-const goodDates = new Map<string, number>();
 
 const firstDay = Date.parse(`${index.firstDay}T00:00:00Z`);
 const isoDate = (date: number) => new Date(firstDay + date * DAY_MS).toISOString().slice(0, 10);
@@ -42,7 +41,7 @@ let playing = false;
 let onScreen = false;
 let lastFrame = 0;
 const calendar = byId("calendar");
-const cards = byId("cards");
+const ranking = byId("ranking");
 
 const state = { site: index.sites[0].id, date: 14, aim: [0, 0] as [number, number] };
 
@@ -213,42 +212,27 @@ function renderLocator() {
   </svg>`;
 }
 
-function renderCards() {
+function renderRanking() {
   renderLocator();
-  byId("cards-date").textContent = label(state.date, { month: "long", day: "numeric", year: "numeric" });
-  cards.replaceChildren(
-    ...sites.map(({ site }) => {
-      const aim = bestAim(site.id, state.date);
-      const mission = missions.get(site.id)!;
-      const chance = mission.chance(state.date, ...aim);
-      const late = mission.slipDays(state.date, ...aim);
-      const slip = chance < GOOD_CHANCE ? "Not a good date here" : late === 0 ? "Works only on this date" : `Works up to ${late} ${late === 1 ? "day" : "days"} late`;
-      const good = goodDates.has(site.id) ? `${goodDates.get(site.id)} of ${mission.dates}` : "counting";
-      const flat = mission.slope.filter((s) => s <= MAX_SLOPE_DEG).length / mission.slope.length;
-      const card = document.createElement("button");
-      card.className = "card";
-      card.setAttribute("aria-pressed", String(site.id === state.site));
-      card.innerHTML = `<span class="card-name">${site.name}</span><span class="card-value">${percent(chance)}</span><span class="card-label">Chance the mission works, at its safest spot</span><span class="card-fact">${slip}</span><span class="card-fact">Good dates in 2027: ${good}</span><span class="card-fact">Flat ground: ${percent(flat)} of the map</span><span class="card-source">${site.source}</span>`;
-      card.onclick = () => update({ site: site.id, aim: aim });
-      return card;
+  byId("ranking-date").textContent = label(state.date, { month: "long", day: "numeric", year: "numeric" });
+  const rows = sites.map(({ site }, order) => {
+    const mission = missions.get(site.id)!;
+    const aim = bestAim(site.id, state.date);
+    const chance = mission.chance(state.date, ...aim);
+    const late = chance < GOOD_CHANCE ? -1 : mission.slipDays(state.date, ...aim);
+    return { site, chance, late, order };
+  });
+  rows.sort((a, b) => b.chance - a.chance || b.late - a.late || a.order - b.order);
+  ranking.replaceChildren(
+    ...rows.map(({ site, chance, late }) => {
+      const slip = late < 0 ? "Not a good date" : late === 0 ? "Only on this date" : `Up to ${late} ${late === 1 ? "day" : "days"} late`;
+      const row = document.createElement("tr");
+      row.dataset.site = site.id;
+      row.title = site.source;
+      row.innerHTML = `<td><button type="button" aria-pressed="${site.id === state.site}">${site.name}</button></td><td class="number chance-cell${chance >= GOOD_CHANCE ? " good" : ""}">${percent(chance)}</td><td>${slip}</td>`;
+      return row;
     }),
   );
-}
-
-async function countGoodDates() {
-  for (const { site } of sites) {
-    const mission = missions.get(site.id)!;
-    let count = 0;
-    let started = performance.now();
-    for (let date = 0; date < mission.dates; date++) {
-      count += Number(mission.chance(date, ...bestAim(site.id, date)) >= GOOD_CHANCE);
-      if (performance.now() - started < 8) continue;
-      await new Promise((resolve) => setTimeout(resolve));
-      started = performance.now();
-    }
-    goodDates.set(site.id, count);
-    renderCards();
-  }
 }
 
 function northOf(site: Site, extent: number): [number, number] {
@@ -330,7 +314,7 @@ function update(change: Partial<typeof state>) {
   Object.assign(state, change);
   if (dateChanged || siteChanged) hour = 0;
   render();
-  if (dateChanged || siteChanged) renderCards();
+  if (dateChanged || siteChanged) renderRanking();
 }
 
 const menu = siteMenu(index.sites, (id) => update({ site: id, aim: bestAim(id, state.date) }));
@@ -348,6 +332,10 @@ calendar.addEventListener("click", (event) => {
 });
 byId("locator").addEventListener("click", (event) => {
   const site = (event.target as SVGElement).dataset.site;
+  if (site !== undefined) update({ site, aim: bestAim(site, state.date) });
+});
+ranking.addEventListener("click", (event) => {
+  const site = (event.target as HTMLElement).closest("tr")?.dataset.site;
   if (site !== undefined) update({ site, aim: bestAim(site, state.date) });
 });
 function setPlaying(value: boolean) {
@@ -412,5 +400,4 @@ onThemeChange(render);
 
 readUrl();
 render();
-renderCards();
-void countGoodDates();
+renderRanking();

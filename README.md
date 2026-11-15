@@ -20,7 +20,7 @@ Built for the NASA Space Apps Challenge 2026, challenge "Lunar Landing Site Navi
 
 ## What you can do
 
-- **Pick a site** near the lunar south pole: the Shackleton connecting ridge, Athena's aim on Mons Mouton, and all nine Artemis III candidate regions. Each site card shows the chance the mission works on the chosen date, how many landing dates in 2027 are good, and how much of the map is flat.
+- **Pick a site** near the lunar south pole: the Shackleton connecting ridge, Athena's aim on Mons Mouton, and all nine Artemis III candidate regions. A table ranks the sites, best first, by the chance the mission works on the chosen date and how many days late the launch can slip.
 - **Drag the aim point** on a 2 × 2 km terrain map. The amber zone is flat ground with enough sunlight and Earth in view; each dot is one possible landing.
 - **Change the landing date** (January 1 to December 18, 2027) or let the launch slip a week, and see the next good date.
 - **See what the lander sees:** the terrain horizon in every direction, the paths of the Sun and Earth over the next 14 days, and when they set. A spot a few hundred meters away can fail because the Sun hides behind a hill.

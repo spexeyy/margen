@@ -51,95 +51,101 @@
           <span class="aim-detail" id="aim-detail"></span>
         </div>
         <ul class="legend">
-          <li><i class="swatch zone"></i>Flat ground with enough sunlight and Earth in view</li>
+          <li><i class="swatch zone"></i>Meets every need</li>
           <li><i class="swatch works"></i>Landing works</li>
           <li><i class="swatch fails"></i>Landing fails</li>
-          <li><i class="swatch ring"></i>100 m typical miss: half the landings fall inside</li>
+          <li><i class="swatch ring"></i>Half the landings fall inside</li>
         </ul>
       </section>
 
       <aside class="readout">
-        <div class="site-field" id="site-field">
-          <span class="field-label" id="site-label">Landing site</span>
-          <button type="button" class="site-open" id="site-open" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="site-label site-current">
-            <span id="site-current"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
-          </button>
-          <div class="site-popover" id="site-popover" hidden>
-            <p class="note">Chance the mission works at each site's safest spot, on this date.</p>
-            <ul class="site-menu" id="site-menu" role="listbox" aria-labelledby="site-label"></ul>
+        <div class="controls">
+          <div class="site-field" id="site-field">
+            <span class="field-label" id="site-label">Landing site</span>
+            <button type="button" class="site-open" id="site-open" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="site-label site-current">
+              <span id="site-current"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+            </button>
+            <div class="site-popover" id="site-popover" hidden>
+              <p class="note">Chance the mission works at each site's safest spot, on this date.</p>
+              <ul class="site-menu" id="site-menu" role="listbox" aria-labelledby="site-label"></ul>
+            </div>
+          </div>
+          <div class="date-field" id="date-field">
+            <span class="field-label">Landing date, 00:00 UTC</span>
+            <div class="date-control">
+              <button type="button" class="step" data-shift="-1" aria-label="Previous day"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
+              <button type="button" class="date-open" id="date-open" aria-haspopup="true" aria-expanded="false"></button>
+              <button type="button" class="step" data-shift="1" aria-label="Next day"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg></button>
+            </div>
+            <div class="date-popover" id="date-popover" hidden>
+              <div class="month-head">
+                <button type="button" class="step" id="month-prev" aria-label="Previous month"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
+                <span id="month-name"></span>
+                <button type="button" class="step" id="month-next" aria-label="Next month"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg></button>
+              </div>
+              <div class="weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
+              <div class="days" id="days"></div>
+              <p class="note">Shaded by the chance the mission works at this aim.</p>
+            </div>
+            <button type="button" class="slip" data-shift="7">Launch slips a week</button>
           </div>
         </div>
         <p class="chance" id="chance"></p>
         <p class="caption"><strong>Chance the mission works.</strong> <span id="count"></span> of 1,000 possible landings work, with a 100 m typical miss.</p>
         <p class="visually-hidden" aria-live="polite" id="summary"></p>
-
-        <dl class="needs">
-          <div>
-            <dt>Flat ground</dt>
-            <dd>keeps the lander upright</dd>
-            <dd class="value" id="slope"></dd>
-            <dd class="need">needs 10° or less</dd>
-          </div>
-          <div>
-            <dt>Sun on landing day</dt>
-            <dd>power from the first hours</dd>
-            <dd class="value" id="landing-sun"></dd>
-            <dd class="need">needs 50%</dd>
-          </div>
-          <div>
-            <dt>Earth on landing day</dt>
-            <dd>contact from the first hours</dd>
-            <dd class="value" id="landing-earth"></dd>
-            <dd class="need">needs 30%</dd>
-          </div>
-          <div>
-            <dt>Sunlight</dt>
-            <dd>powers the lander</dd>
-            <dd class="value" id="sunlight"></dd>
-            <dd class="need">needs 50%</dd>
-          </div>
-          <div>
-            <dt>Earth in view</dt>
-            <dd>lets it talk to home</dd>
-            <dd class="value" id="earth"></dd>
-            <dd class="need">needs 30%</dd>
-          </div>
-        </dl>
-        <p class="note">
-          At the aim point. Slope is measured across 40 m. Sun and Earth on landing day are shares of the first 24
-          hours; sunlight and Earth in view are shares of the first 14 days. Landing is at 00:00 UTC.
-        </p>
-
-        <div class="date-field" id="date-field">
-          <span class="field-label">Landing date</span>
-          <div class="date-control">
-            <button type="button" class="step" data-shift="-1" aria-label="Previous day"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
-            <button type="button" class="date-open" id="date-open" aria-haspopup="true" aria-expanded="false"></button>
-            <button type="button" class="step" data-shift="1" aria-label="Next day"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg></button>
-          </div>
-          <div class="date-popover" id="date-popover" hidden>
-            <div class="month-head">
-              <button type="button" class="step" id="month-prev" aria-label="Previous month"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg></button>
-              <span id="month-name"></span>
-              <button type="button" class="step" id="month-next" aria-label="Next month"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg></button>
-            </div>
-            <div class="weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>
-            <div class="days" id="days"></div>
-            <p class="note">Shaded by the chance the mission works at this aim.</p>
-          </div>
-          <button type="button" class="slip" data-shift="7">Launch slips a week</button>
-        </div>
         <div class="when" id="when"></div>
+
+        <table class="needs">
+          <thead>
+            <tr>
+              <th>At the aim</th>
+              <th title="Share of the first 24 hours">First day</th>
+              <th title="Share of the first 14 days">14 days</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th title="Powers the lander">Sunlight</th>
+              <td id="landing-sun" data-need="needs 50%"></td>
+              <td id="sunlight" data-need="needs 50%"></td>
+            </tr>
+            <tr>
+              <th title="Lets it talk to home">Earth in view</th>
+              <td id="landing-earth" data-need="needs 30%"></td>
+              <td id="earth" data-need="needs 30%"></td>
+            </tr>
+            <tr>
+              <th title="Keeps the lander upright. Measured across 40 m">Ground slope</th>
+              <td id="slope" colspan="2" data-need="needs 10° or less"></td>
+            </tr>
+          </tbody>
+        </table>
+
         <button type="button" class="best" id="best">Aim at the safest spot</button>
       </aside>
 
+      <section class="sites-panel">
+        <h2>Compare sites on <span id="ranking-date"></span></h2>
+        <div class="compare">
+          <table class="ranking">
+            <thead>
+              <tr>
+                <th>Site</th>
+                <th class="number">Chance it works</th>
+                <th>If the launch slips</th>
+              </tr>
+            </thead>
+            <tbody id="ranking"></tbody>
+          </table>
+          <div class="locator" id="locator"></div>
+        </div>
+        <p class="note">Best first, aiming at each site's safest spot. Click a row or a dot to open a site.</p>
+      </section>
+
       <section class="calendar-panel">
         <h2>Chance by landing date, same aim</h2>
-        <p class="note">
-          Bar height is the chance the mission works for a landing at 00:00 UTC on that date. Amber: a good date, 90% or
-          better.
-        </p>
+        <p class="note">Amber: 90% or better.</p>
         <div class="calendar" id="calendar"></div>
       </section>
 
@@ -167,27 +173,11 @@
           </button>
           <p class="moment" id="moment"></p>
         </div>
-        <p class="note">The first 14 days play on their own. Tap or drag the timeline to stop at a moment.</p>
+        <p class="note">Drag the timeline to stop at a moment.</p>
 
         <h3>Where they are in the sky</h3>
         <canvas id="sky" role="img" aria-label="Line of hills all around the aim point, with the paths of the Sun and Earth over the first 14 days"></canvas>
-        <p class="note">
-          One dot per day. Heights are stretched so the hills show. From the Moon, Earth hangs almost still and slowly
-          bobs up and down; the Sun circles the whole horizon once a month.
-        </p>
-      </section>
-
-      <section class="sites-panel">
-        <h2>Compare sites on <span id="cards-date"></span></h2>
-        <div class="locator">
-          <div id="locator"></div>
-          <p class="note">
-            The sites, seen from above the south pole, the cross at the center. Click a dot to open that site. Rings
-            mark every 2° of latitude, about 61 km. Earth always
-            hangs low in the sky toward the top of this map, so a hill on that side can hide it.
-          </p>
-        </div>
-        <div class="cards" id="cards"></div>
+        <p class="note">One dot per day. Heights are stretched so the hills show.</p>
       </section>
     </main>
 
