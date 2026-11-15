@@ -11,9 +11,18 @@ import { GOOD_CHANCE, LANDINGS, MAX_SLOPE_DEG, Mission, NEEDS_EARTH, NEEDS_SUNLI
 import type { Window } from "./mission";
 import { EARTH, Observer, SUN, toLonLat, toXY } from "./sky";
 import { isLight, onThemeChange } from "./theme";
+import { drawYear } from "./year";
 
 const DAY_MS = 86400000;
 const DEFAULT_SITE = "mouton";
+const HOURS_PER_MS = 0.028;
+const CAUSES = [
+  { label: "Land and work", hint: "all five met", color: "muted" },
+  { label: "Too steep", hint: "slope over 10°", color: "fail" },
+  { label: "Too little sunlight", hint: "first day or 14 days", color: "amber" },
+  { label: "Earth out of view", hint: "first day or 14 days", color: "earth" },
+];
+const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 
 const index = await loadIndex();
 const sites = new Map<string, SiteData>();
@@ -47,30 +56,45 @@ const horizons = new Map<string, Uint8Array>();
 const windows = new Map<string, Window>();
 const zones = new Map<string, HTMLCanvasElement>();
 const bestAims = new Map<string, [number, number]>();
+const goodCounts = new Map<string, number>();
 
 const firstDay = Date.parse(`${index.firstDay}T00:00:00Z`);
 const isoDate = (date: number) => new Date(firstDay + date * DAY_MS).toISOString().slice(0, 10);
 const label = (date: number, options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }) =>
   new Date(firstDay + date * DAY_MS).toLocaleDateString("en-US", { ...options, timeZone: "UTC" });
+const days = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
 const byId = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const mapCanvas = byId<HTMLCanvasElement>("map");
+const yearCanvas = byId<HTMLCanvasElement>("year");
 const timelineCanvas = byId<HTMLCanvasElement>("timeline");
 const skyCanvas = byId<HTMLCanvasElement>("sky");
 const playButton = byId<HTMLButtonElement>("play");
-const HOURS_PER_MS = 0.028;
 let skyView: Sky | null = null;
+let chances: number[] = [];
+let slip = -1;
+let yearHover: number | null = null;
 let hour = 0;
 let playing = false;
 let onScreen = false;
 let lastFrame = 0;
-const calendar = byId("calendar");
-const ranking = byId("ranking");
 
 function bestAim(site: string, date: number): [number, number] {
   const key = `${site}:${date}`;
   if (!bestAims.has(key)) bestAims.set(key, missions.get(site)!.bestAim(date));
   return bestAims.get(key)!;
+}
+
+function goodDates(site: string, date: number): number {
+  const key = `${site}:${date}`;
+  if (!goodCounts.has(key)) {
+    const mission = missions.get(site)!;
+    const aim = bestAim(site, date);
+    let count = 0;
+    for (let d = 0; d < dates; d++) count += Number(mission.chance(d, ...aim) >= GOOD_CHANCE);
+    goodCounts.set(key, count);
+  }
+  return goodCounts.get(key)!;
 }
 
 function windowOf(site: string, date: number): Window {
@@ -109,6 +133,34 @@ function fitCanvas(canvas: HTMLCanvasElement) {
   const width = Math.round(canvas.clientWidth * devicePixelRatio);
   const height = Math.round(canvas.clientHeight * devicePixelRatio);
   if (canvas.width !== width || canvas.height !== height) [canvas.width, canvas.height] = [width, height];
+}
+
+function flash(button: HTMLElement, text: string) {
+  const original = button.textContent;
+  button.textContent = text;
+  setTimeout(() => (button.textContent = original), 1500);
+}
+
+function slipText(late: number) {
+  return late === 0 ? "Works only on this date" : `Still works up to ${days(late)} late`;
+}
+
+function northOf(site: Site, extent: number): [number, number] {
+  // Near the south pole, local north points straight away from the pole; canvas y grows downward.
+  const x = site.x0 + extent / 2;
+  const y = site.y0 - extent / 2;
+  const length = Math.hypot(x, y);
+  return [x / length, -y / length];
+}
+
+function compass(north: [number, number], dx: number, dy: number): string {
+  const [nx, ny] = north;
+  const bearing = (Math.atan2(-dx * ny + dy * nx, dx * nx + dy * ny) * 180) / Math.PI;
+  return COMPASS[Math.round(((bearing + 360) % 360) / 45) % 8];
+}
+
+function distance(meters: number): string {
+  return meters < 1000 ? `${Math.max(20, Math.round(meters / 10) * 10)} m` : `${(meters / 1000).toFixed(1)} km`;
 }
 
 function duration(hours: number) {
@@ -168,97 +220,148 @@ function drawSkyViews() {
   timelineCanvas.setAttribute("aria-valuetext", `${when}. ${status}`);
 }
 
-function renderCalendar(mission: Mission, chances: number[]) {
-  if (calendar.childElementCount !== mission.dates) {
-    calendar.replaceChildren(
-      ...Array.from({ length: mission.dates }, (_, date) => {
-        const button = document.createElement("button");
-        button.dataset.date = String(date);
-        if (label(date, { day: "numeric" }) === "1") button.dataset.tick = label(date, { month: "short" });
-        return button;
-      }),
-    );
-  }
-  for (const button of calendar.children as HTMLCollectionOf<HTMLButtonElement>) {
-    const date = Number(button.dataset.date);
-    const chance = chances[date];
-    button.style.setProperty("--chance", String(chance));
-    button.classList.toggle("good", chance >= GOOD_CHANCE);
-    button.setAttribute("aria-pressed", String(date === state.date));
-    button.title = `${label(date)} · ${percent(chance)}`;
-  }
+function renderYear() {
+  fitCanvas(yearCanvas);
+  drawYear(yearCanvas, { chances, date: state.date, slip, hover: yearHover, firstDay });
+  const good = chances.filter((chance) => chance >= GOOD_CHANCE).length;
+  byId("year-hover").textContent =
+    yearHover === null
+      ? `${good} good dates in 2027 with this aim`
+      : `${label(yearHover, { weekday: "short", month: "short", day: "numeric" })} · ${percent(chances[yearHover])}`;
+  yearCanvas.setAttribute("aria-valuemax", String(dates - 1));
+  yearCanvas.setAttribute("aria-valuenow", String(state.date));
+  yearCanvas.setAttribute("aria-valuetext", `${label(state.date)} · ${percent(chances[state.date])}`);
 }
 
-function renderWhen(mission: Mission, chance: number) {
-  const box = byId("when");
-  byId("best").classList.toggle("primary", chance < GOOD_CHANCE);
-  if (chance >= GOOD_CHANCE) {
-    const late = mission.slipDays(state.date, ...state.aim);
-    const margin = late === 0 ? "Works only on this date" : `Still works up to ${late} ${late === 1 ? "day" : "days"} late`;
-    box.innerHTML = `<span>If the launch slips</span><strong>${margin}</strong>`;
-    return;
-  }
-  const next = mission.nextGoodDate(state.date, ...state.aim);
-  if (next === null) {
-    box.innerHTML = `<span>Next good date</span><strong>No good date with this aim</strong>`;
-    return;
-  }
-  const odds = percent(mission.chance(next, ...state.aim));
-  box.innerHTML = `<span>Next good date</span><strong>${label(next, { weekday: "short", month: "short", day: "numeric" })} · ${odds}</strong><button type="button">Go</button>`;
-  box.querySelector("button")!.onclick = () => update({ date: next });
+function renderVerdict(chance: number, counts: number[]) {
+  const meets = chance >= GOOD_CHANCE;
+  const gap = Math.max(1, Math.ceil((GOOD_CHANCE - chance) * 100 - 1e-9));
+  const badge = byId("badge");
+  badge.textContent = meets ? "Meets the 90% target" : `${gap} ${gap === 1 ? "point" : "points"} below target`;
+  badge.classList.toggle("short", !meets);
+  byId("chance").textContent = percent(chance);
+  byId("map-chance").textContent = percent(chance);
+  byId("meter-fill").style.width = `${100 * chance}%`;
+  byId("meter-fill").classList.toggle("short", !meets);
+  byId("count").textContent = counts[0].toLocaleString("en-US");
+
+  const fails = LANDINGS - counts[0];
+  byId("causes-heading").textContent = fails > 0 ? `Why ${fails.toLocaleString("en-US")} landings fail` : "Every landing works";
+  const shown = CAUSES.map((cause, i) => ({ ...cause, count: counts[i] })).filter((cause) => cause.count > 0);
+  byId("causes-bar").replaceChildren(
+    ...shown.map((cause) => {
+      const part = document.createElement("span");
+      part.style.width = `${(100 * cause.count) / LANDINGS}%`;
+      part.style.background = `var(--${cause.color})`;
+      return part;
+    }),
+  );
+  byId("causes-list").innerHTML = shown
+    .map((cause) => `<li><i style="background:var(--${cause.color})"></i><span>${cause.label} <span class="muted">· ${cause.hint}</span></span><span>${cause.count.toLocaleString("en-US")}</span></li>`)
+    .join("");
 }
 
-function renderLocator() {
-  const reach = toXY(0, -83)[1];
-  const at = (x: number, y: number) => [190 + (95 * x) / reach, 110 - (95 * y) / reach];
-  const rings = [-88, -86, -84].map((lat) => `<circle cx="190" cy="110" r="${(95 * toXY(0, lat)[1]) / reach}" class="ring"/>`);
-  const dots = index.sites.map((site) => {
-    const [x, y] = at(...toXY(site.lon, site.lat));
-    const current = site.id === state.site;
-    const left = x < 190;
-    const name = current ? `<text x="${left ? x - 9 : x + 9}" y="${y + 4}" text-anchor="${left ? "end" : "start"}">${site.name}</text>` : "";
-    return `<circle cx="${x}" cy="${y}" r="5" class="${current ? "current" : "site"}" data-site="${site.id}"><title>${site.name}</title></circle>${name}`;
-  });
-  byId("locator").innerHTML = `<svg viewBox="0 0 380 220" role="img" aria-label="Map of the lunar south pole with the ${index.sites.length} landing sites">
-    ${rings.join("")}
-    <path d="M185 110h10M190 105v10" class="ring"/>
-    <text x="190" y="10" text-anchor="middle">Toward Earth</text>
-    ${dots.join("")}
-  </svg>`;
+function renderNeed(id: string, text: string, ok: boolean, fill: number, threshold: number, kind: string) {
+  byId(id).innerHTML =
+    `<span class="need-value${ok ? "" : " short"}">${text}</span>` +
+    `<span class="need-bar"><span class="need-fill" style="width:${100 * Math.min(1, fill)}%;background:var(--${ok ? kind : "fail"})"></span>` +
+    `<span class="need-tick" style="left:${100 * threshold}%"></span></span>`;
 }
 
-function renderRanking() {
-  renderLocator();
-  byId("ranking-date").textContent = label(state.date, { month: "long", day: "numeric", year: "numeric" });
+function renderNeeds(mission: Mission, window: Window, cell: number) {
+  const sun = (value: number) => [percent(value), value >= NEEDS_SUNLIGHT, value, NEEDS_SUNLIGHT, "amber"] as const;
+  const earth = (value: number) => [percent(value), value >= NEEDS_EARTH, value, NEEDS_EARTH, "earth"] as const;
+  renderNeed("need-sun-day", ...sun(window.landingSun[cell]));
+  renderNeed("need-sun-14", ...sun(window.sunlight[cell]));
+  renderNeed("need-earth-day", ...earth(window.landingEarth[cell]));
+  renderNeed("need-earth-14", ...earth(window.earth[cell]));
+  const slope = mission.slope[cell];
+  renderNeed("need-slope", `${slope.toFixed(1)}°`, slope <= MAX_SLOPE_DEG, slope / (2 * MAX_SLOPE_DEG), 0.5, "muted");
+}
+
+function renderWhen(chance: number) {
+  const meets = chance >= GOOD_CHANCE;
+  const next = meets ? -1 : chances.findIndex((c, d) => d > state.date && c >= GOOD_CHANCE);
+  byId("when-label").textContent = meets ? "If the launch slips" : "Next good date with this aim";
+  byId("when-text").textContent = meets
+    ? slipText(slip)
+    : next < 0
+      ? "No good date later in 2027"
+      : `${label(next, { weekday: "short", month: "short", day: "numeric" })} · ${percent(chances[next])}`;
+  const go = byId<HTMLButtonElement>("go-next");
+  go.hidden = next < 0;
+  go.onclick = () => update({ date: next });
+  byId("strip-start").textContent = label(state.date);
+  byId("days-strip").replaceChildren(
+    ...Array.from({ length: WINDOW_DAYS + 1 }, (_, i) => {
+      const date = state.date + i;
+      const cell = document.createElement("span");
+      if (date < dates) {
+        cell.title = `${label(date)} · ${percent(chances[date])}`;
+        cell.className = chances[date] >= GOOD_CHANCE ? "good" : chances[date] > 0 ? "some" : "";
+      }
+      cell.classList.toggle("today", i === 0);
+      return cell;
+    }),
+  );
+}
+
+function renderBest(mission: Mission, chance: number) {
+  const best = bestAim(state.site, state.date);
+  const bestChance = mission.chance(state.date, ...best);
+  const atBest = bestChance <= chance + 1e-9;
+  const button = byId<HTMLButtonElement>("best");
+  button.hidden = atBest;
+  byId("at-best").hidden = !atBest;
+  button.classList.toggle("primary", chance < GOOD_CHANCE);
+  const [dx, dy] = [best[0] - state.aim[0], best[1] - state.aim[1]];
+  const north = northOf(sites.get(state.site)!.site, mission.extent);
+  byId("best-preview").textContent = `${distance(Math.hypot(dx, dy))} ${compass(north, dx, dy)} → ${percent(bestChance)}`;
+}
+
+function rankingRows() {
   const rows = index.sites.map((site, order) => {
     const mission = missions.get(site.id);
-    if (!mission) return { site, chance: -1, late: -1, order };
+    if (!mission) return { site, chance: -1, late: -1, good: -1, order };
     const aim = bestAim(site.id, state.date);
     const chance = mission.chance(state.date, ...aim);
     const late = chance < GOOD_CHANCE ? -1 : mission.slipDays(state.date, ...aim);
-    return { site, chance, late, order };
+    return { site, chance, late, good: goodDates(site.id, state.date), order };
   });
-  rows.sort((a, b) => b.chance - a.chance || b.late - a.late || a.order - b.order);
-  ranking.replaceChildren(
-    ...rows.map(({ site, chance, late }) => {
+  return rows.sort((a, b) => b.chance - a.chance || b.late - a.late || a.order - b.order);
+}
+
+function renderRanking() {
+  byId("ranking-date").textContent = label(state.date, { month: "long", day: "numeric", year: "numeric" });
+  const rows = rankingRows();
+  const slipShort = (late: number) => (late < 0 ? "Not a good date" : late === 0 ? "Only on this date" : `Up to ${days(late)} late`);
+  byId("ranking").replaceChildren(
+    ...rows.map(({ site, chance, late, good }) => {
       const loaded = chance >= 0;
-      const slip = !loaded ? "Loading" : late < 0 ? "Not a good date" : late === 0 ? "Only on this date" : `Up to ${late} ${late === 1 ? "day" : "days"} late`;
-      const row = document.createElement("tr");
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "ranking-row";
       row.dataset.site = site.id;
-      row.title = site.source;
-      row.innerHTML = `<td><button type="button" aria-pressed="${site.id === state.site}">${site.name}</button></td><td class="number chance-cell${chance >= GOOD_CHANCE ? " good" : ""}">${loaded ? percent(chance) : "…"}</td><td>${slip}</td>`;
+      row.setAttribute("aria-pressed", String(site.id === state.site));
+      row.innerHTML =
+        `<span class="ranking-name">${site.name}</span>` +
+        `<span class="ranking-chance${chance >= GOOD_CHANCE ? "" : " short"}">${loaded ? percent(chance) : "…"}</span>` +
+        `<span class="muted">${loaded ? slipShort(late) : "Loading"}</span>` +
+        `<span class="ranking-good">${loaded ? good : ""}</span>`;
       return row;
     }),
   );
-  menu.render(state.site, (id) => (missions.has(id) ? percent(missions.get(id)!.chance(state.date, ...bestAim(id, state.date))) : "…"));
-}
-
-function northOf(site: Site, extent: number): [number, number] {
-  // Near the south pole, local north points straight away from the pole; canvas y grows downward.
-  const x = site.x0 + extent / 2;
-  const y = site.y0 - extent / 2;
-  const length = Math.hypot(x, y);
-  return [x / length, -y / length];
+  menu.render(
+    state.site,
+    `Chance at each site's safest spot on ${label(state.date)}, best first.`,
+    rows.map(({ site, chance, late }) => ({
+      id: site.id,
+      name: site.name,
+      chance: chance >= 0 ? percent(chance) : "…",
+      detail: `${site.note} · ${chance >= 0 ? slipShort(late) : "Loading"}`,
+      good: chance >= GOOD_CHANCE,
+    })),
+  );
 }
 
 function renderMap(mission: Mission, outcomes: Uint8Array) {
@@ -289,7 +392,7 @@ function renderAim(cell: number) {
   const [lon, lat] = aimLonLat();
   const [x, y] = [data.site.x0 + state.aim[0], data.site.y0 - state.aim[1]];
   byId("aim-coords").textContent = `${Math.abs(lat).toFixed(4)}° ${lat < 0 ? "S" : "N"}, ${lon.toFixed(3)}° E`;
-  byId("aim-detail").textContent = `Ground ${data.ground[cell].toLocaleString("en-US")} m above the lunar reference sphere · ${(Math.hypot(x, y) / 1000).toFixed(1)} km from the south pole`;
+  byId("aim-detail").textContent = `Ground ${data.ground[cell].toLocaleString("en-US")} m · ${(Math.hypot(x, y) / 1000).toFixed(1)} km from the south pole`;
 }
 
 function render() {
@@ -298,29 +401,18 @@ function render() {
   const chance = outcomes.reduce((sum, v) => sum + v, 0) / LANDINGS;
   const window = windowOf(state.site, state.date);
   const cell = mission.cell(...state.aim);
+  chances = Array.from({ length: dates }, (_, date) => mission.chance(date, ...state.aim));
+  slip = chance >= GOOD_CHANCE ? mission.slipDays(state.date, ...state.aim) : -1;
 
   renderMap(mission, outcomes);
   renderAim(cell);
-  byId("count").textContent = (chance * LANDINGS).toLocaleString("en-US");
-  const slope = `${mission.slope[cell].toFixed(1)}°`;
-  byId("summary").textContent = `${percent(chance)} chance the mission works. Slope ${slope}. On landing day, Sun ${percent(window.landingSun[cell])} and Earth ${percent(window.landingEarth[cell])}. Over 14 days, sunlight ${percent(window.sunlight[cell])} and Earth in view ${percent(window.earth[cell])}.`;
-  byId("chance").textContent = percent(chance);
-  byId("map-chance").textContent = percent(chance);
-  byId("chance").classList.toggle("good", chance >= GOOD_CHANCE);
-  byId("slope").textContent = slope;
-  byId("slope").classList.toggle("short", mission.slope[cell] > MAX_SLOPE_DEG);
-  byId("landing-sun").textContent = percent(window.landingSun[cell]);
-  byId("landing-sun").classList.toggle("short", window.landingSun[cell] < NEEDS_SUNLIGHT);
-  byId("landing-earth").textContent = percent(window.landingEarth[cell]);
-  byId("landing-earth").classList.toggle("short", window.landingEarth[cell] < NEEDS_EARTH);
-  byId("sunlight").textContent = percent(window.sunlight[cell]);
-  byId("sunlight").classList.toggle("short", window.sunlight[cell] < NEEDS_SUNLIGHT);
-  byId("earth").textContent = percent(window.earth[cell]);
-  byId("earth").classList.toggle("short", window.earth[cell] < NEEDS_EARTH);
-  const chances = Array.from({ length: mission.dates }, (_, date) => mission.chance(date, ...state.aim));
+  renderVerdict(chance, mission.causes(window, ...state.aim));
+  renderNeeds(mission, window, cell);
+  renderWhen(chance);
+  renderBest(mission, chance);
+  renderYear();
   picker.render(state.date, chances);
-  renderWhen(mission, chance);
-  renderCalendar(mission, chances);
+  byId("summary").textContent = `${percent(chance)} chance the mission works. Slope ${mission.slope[cell].toFixed(1)}°. On landing day, Sun ${percent(window.landingSun[cell])} and Earth ${percent(window.landingEarth[cell])}. Over 14 days, sunlight ${percent(window.sunlight[cell])} and Earth in view ${percent(window.earth[cell])}.`;
   writeUrl();
   void renderHorizon();
 }
@@ -339,25 +431,44 @@ async function select(site: string) {
   update({ site, aim: bestAim(site, state.date) });
 }
 
-const menu = siteMenu(index.sites, select);
-const picker = datePicker(firstDay, dates, (date) => update({ date }));
-for (const button of document.querySelectorAll<HTMLButtonElement>("[data-shift]")) {
-  button.addEventListener("click", () => {
-    update({ date: Math.min(dates - 1, Math.max(0, state.date + Number(button.dataset.shift))) });
-  });
+function setDate(date: number) {
+  update({ date: Math.min(dates - 1, Math.max(0, date)) });
 }
-calendar.addEventListener("click", (event) => {
-  const date = (event.target as HTMLElement).dataset.date;
-  if (date !== undefined) update({ date: Number(date) });
-});
-byId("locator").addEventListener("click", (event) => {
-  const site = (event.target as SVGElement).dataset.site;
+
+const menu = siteMenu(select);
+const picker = datePicker(firstDay, dates, setDate);
+for (const button of document.querySelectorAll<HTMLButtonElement>("[data-shift]")) {
+  button.addEventListener("click", () => setDate(state.date + Number(button.dataset.shift)));
+}
+byId("ranking").addEventListener("click", (event) => {
+  const site = (event.target as HTMLElement).closest<HTMLElement>(".ranking-row")?.dataset.site;
   if (site !== undefined) void select(site);
 });
-ranking.addEventListener("click", (event) => {
-  const site = (event.target as HTMLElement).closest("tr")?.dataset.site;
-  if (site !== undefined) void select(site);
+
+const yearDate = (event: PointerEvent) => {
+  const box = yearCanvas.getBoundingClientRect();
+  return Math.min(dates - 1, Math.max(0, Math.floor(((event.clientX - box.left) / box.width) * dates)));
+};
+yearCanvas.addEventListener("pointerdown", (event) => {
+  yearCanvas.setPointerCapture(event.pointerId);
+  setDate(yearDate(event));
 });
+yearCanvas.addEventListener("pointermove", (event) => {
+  if (yearCanvas.hasPointerCapture(event.pointerId)) setDate(yearDate(event));
+  yearHover = yearDate(event);
+  renderYear();
+});
+yearCanvas.addEventListener("pointerleave", () => {
+  yearHover = null;
+  renderYear();
+});
+yearCanvas.addEventListener("keydown", (event) => {
+  const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowDown: -7, ArrowUp: 7 };
+  if (!(event.key in steps)) return;
+  event.preventDefault();
+  setDate(state.date + steps[event.key]);
+});
+
 function setPlaying(value: boolean) {
   playing = value;
   playButton.setAttribute("aria-label", playing ? "Pause" : "Play");
@@ -394,6 +505,7 @@ timelineCanvas.addEventListener("keydown", (event) => {
 new IntersectionObserver(([entry]) => (onScreen = entry.isIntersecting)).observe(timelineCanvas);
 setPlaying(!matchMedia("(prefers-reduced-motion: reduce)").matches);
 requestAnimationFrame(tick);
+
 onDrag(mapCanvas, (fx, fy) => {
   byId("drag-hint").hidden = true;
   const mission = missions.get(state.site)!;
@@ -411,12 +523,18 @@ mapCanvas.addEventListener("keydown", (event) => {
 byId("copy-aim").addEventListener("click", async () => {
   const [lon, lat] = aimLonLat();
   await navigator.clipboard.writeText(`${lat.toFixed(4)}, ${lon.toFixed(3)}`);
-  byId("copy-aim").textContent = "Copied";
-  setTimeout(() => (byId("copy-aim").textContent = "Copy"), 1500);
+  flash(byId("copy-aim"), "Copied");
+});
+byId("copy-link").addEventListener("click", async () => {
+  await navigator.clipboard.writeText(location.href);
+  flash(byId("copy-link"), "Link copied");
 });
 byId("best").addEventListener("click", () => update({ aim: bestAim(state.site, state.date) }));
 addEventListener("resize", render);
-onThemeChange(render);
+onThemeChange(() => {
+  render();
+  renderRanking();
+});
 
 readUrl();
 render();

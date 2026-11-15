@@ -1,29 +1,23 @@
-import type { Site } from "./data";
-
-export interface SiteMenu {
-  render(current: string, chanceOf: (id: string) => string): void;
+export interface SiteOption {
+  id: string;
+  name: string;
+  chance: string;
+  detail: string;
+  good: boolean;
 }
 
-export function siteMenu(sites: Site[], pick: (id: string) => void): SiteMenu {
+export interface SiteMenu {
+  render(current: string, intro: string, rows: SiteOption[]): void;
+}
+
+export function siteMenu(pick: (id: string) => void): SiteMenu {
   const root = document.getElementById("site-field")!;
   const toggle = document.getElementById("site-open")!;
   const name = document.getElementById("site-current")!;
   const popover = document.getElementById("site-popover")!;
+  const intro = document.getElementById("site-intro")!;
   const list = document.getElementById("site-menu")!;
-  const options = sites.map((site) => {
-    const option = document.createElement("li");
-    option.role = "option";
-    option.tabIndex = -1;
-    option.dataset.site = site.id;
-    option.innerHTML = `<span class="option-name">${site.name}</span><span class="option-chance"></span><span class="option-note">${site.note}</span>`;
-    option.addEventListener("click", () => {
-      close();
-      toggle.focus();
-      pick(site.id);
-    });
-    return option;
-  });
-  list.replaceChildren(...options);
+  let options: HTMLLIElement[] = [];
 
   function close() {
     popover.hidden = true;
@@ -54,12 +48,23 @@ export function siteMenu(sites: Site[], pick: (id: string) => void): SiteMenu {
   });
 
   return {
-    render(current, chanceOf) {
-      name.textContent = sites.find((site) => site.id === current)!.name;
-      for (const option of options) {
-        option.setAttribute("aria-selected", String(option.dataset.site === current));
-        option.querySelector(".option-chance")!.textContent = chanceOf(option.dataset.site!);
-      }
+    render(current, introText, rows) {
+      name.textContent = rows.find((row) => row.id === current)!.name;
+      intro.textContent = introText;
+      options = rows.map((row) => {
+        const option = document.createElement("li");
+        option.role = "option";
+        option.tabIndex = -1;
+        option.setAttribute("aria-selected", String(row.id === current));
+        option.innerHTML = `<span class="option-name">${row.name}</span><span class="option-chance${row.good ? "" : " short"}">${row.chance}</span><span class="option-note">${row.detail}</span>`;
+        option.addEventListener("click", () => {
+          close();
+          toggle.focus();
+          pick(row.id);
+        });
+        return option;
+      });
+      list.replaceChildren(...options);
     },
   };
 }
