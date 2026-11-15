@@ -713,13 +713,6 @@ h2 {
   margin-bottom: 14px;
 }
 
-.lede {
-  max-width: 720px;
-  color: var(--muted);
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-
 .horizon-panel h3 {
   font-size: 14px;
   font-weight: 500;
@@ -762,18 +755,10 @@ h2 {
   font-size: 13px;
 }
 
-.moment-row + .note {
-  margin-top: 6px;
-}
-
 #sky {
   width: 100%;
   height: 300px;
   display: block;
-}
-
-.horizon-panel .note {
-  margin-top: 10px;
 }
 
 .compare {

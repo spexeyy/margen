@@ -10,7 +10,7 @@ import type { Seen, Sky } from "./horizon";
 import { drawMap, onDrag, shade, zone } from "./map";
 import { GOOD_CHANCE, LANDINGS, MAX_SLOPE_DEG, Mission, NEEDS_EARTH, NEEDS_SUNLIGHT, WINDOW_DAYS, percent } from "./mission";
 import type { Window } from "./mission";
-import { EARTH, Observer, SUN, horizonAt, toLonLat, toXY } from "./sky";
+import { EARTH, Observer, SUN, toLonLat, toXY } from "./sky";
 import { isLight, onThemeChange } from "./theme";
 
 const DAY_MS = 86400000;
@@ -115,12 +115,10 @@ async function renderHorizon() {
   const earth = withVisibility(profile, hours.map((h) => observer.look(ephemeris, h, EARTH)));
   const sunEvent = hoursUntilChange(sun);
   const earthEvent = hoursUntilChange(earth);
-  const clearance = sun[0].el - horizonAt(profile, sun[0].az);
-  const hills = `${Math.abs(clearance).toFixed(1)}° ${clearance >= 0 ? "above" : "below"} the hills`;
   byId("events").textContent = [
     event("Sun", sunEvent.up, sunEvent.hours),
     event("Earth", earthEvent.up, earthEvent.hours),
-    `Sun elevation ${sun[0].el.toFixed(1)}°, ${hills}`,
+    `Sun ${sun[0].el.toFixed(1)}° high`,
   ].join(" · ");
   const span = WINDOW_DAYS * 24;
   skyView = { profile, sun: sun.slice(0, span), earth: earth.slice(0, span) };
@@ -129,20 +127,18 @@ async function renderHorizon() {
 
 function drawSkyViews() {
   if (!skyView) return;
-  const window = windowOf(state.site, state.date);
-  const cell = missions.get(state.site)!.cell(...state.aim);
   fitCanvas(timelineCanvas);
   fitCanvas(skyCanvas);
   const now = Math.floor(hour);
   const moment = new Date(firstDay + (state.date * 24 + now) * 3600000);
   const when = `Day ${(now / 24).toFixed(1)} · ${moment.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}, ${moment.toISOString().slice(11, 16)} UTC`;
-  const where = (p: Seen) => (p.visible ? "above the hills" : "behind the hills");
+  const where = (p: Seen) => (p.visible ? "up" : "hidden");
   const status = `Sun ${where(skyView.sun[now])} · Earth ${where(skyView.earth[now])}`;
   drawTimeline(
     timelineCanvas,
     [
-      { label: "Sunlight", share: `${percent(window.sunlight[cell])} of the time · needs 50%`, path: skyView.sun, fill: "amber" },
-      { label: "Earth in view", share: `${percent(window.earth[cell])} of the time · needs 30%`, path: skyView.earth, fill: "earth" },
+      { label: "Sunlight", path: skyView.sun, fill: "amber" },
+      { label: "Earth in view", path: skyView.earth, fill: "earth" },
     ],
     hour,
     [label(state.date), label(state.date + 7), label(state.date + WINDOW_DAYS)],

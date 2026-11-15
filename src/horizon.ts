@@ -12,7 +12,6 @@ export interface Sky {
 
 export interface TimelineRow {
   label: string;
-  share: string;
   path: Seen[];
   fill: string;
 }
@@ -48,11 +47,6 @@ export function drawTimeline(canvas: HTMLCanvasElement, rows: TimelineRow[], hou
     ctx.font = '13px "Geist Variable", sans-serif';
     ctx.fillStyle = color("fg");
     ctx.fillText(row.label, 0, top);
-    ctx.font = '12px "Geist Variable", sans-serif';
-    ctx.fillStyle = color("muted");
-    ctx.textAlign = "right";
-    ctx.fillText(row.share, width, top);
-    ctx.textAlign = "left";
     const middle = top + 13;
     ctx.fillStyle = color("line-strong");
     ctx.fillRect(0, middle - 0.5, width, 1);
@@ -168,13 +162,10 @@ export function drawSky(canvas: HTMLCanvasElement, sky: Sky, hour: number): void
   ctx.fillStyle = color("muted");
   ctx.fillText("Sky", LEFT + 8, 16);
   ctx.fillText("Hills", LEFT + 8, bottom - 8);
+  ctx.fillStyle = color("fg");
   for (const [path, name] of [[sky.earth, "Earth"], [sky.sun, "Sun"]] as const) {
-    const [first, last, now] = [path[0], path[path.length - 1], path[hour]];
-    ctx.fillStyle = color("muted");
-    text(ctx, "Landing", toX(first.az) + 8, toY(first.el) + 16, width);
-    text(ctx, "Day 14", toX(last.az) + 8, toY(last.el) + 16, width);
-    ctx.fillStyle = color("fg");
-    text(ctx, now.visible ? name : `${name}, behind the hills`, toX(now.az) + 12, toY(now.el) - 10, width);
+    const now = path[hour];
+    text(ctx, name, toX(now.az) + 12, toY(now.el) - 10, width);
   }
 }
 
