@@ -387,10 +387,44 @@ function aimLonLat(): [number, number] {
   return toLonLat(site.x0 + state.aim[0], site.y0 - state.aim[1]);
 }
 
+function horizonsUrl(lon: number, lat: number, groundM: number): string {
+  const query = new URLSearchParams({
+    format: "text",
+    COMMAND: "'10'",
+    OBJ_DATA: "'NO'",
+    MAKE_EPHEM: "'YES'",
+    EPHEM_TYPE: "'OBSERVER'",
+    CENTER: "'coord@301'",
+    COORD_TYPE: "'GEODETIC'",
+    SITE_COORD: `'${lon.toFixed(4)},${lat.toFixed(4)},${(groundM / 1000).toFixed(3)}'`,
+    START_TIME: `'${isoDate(state.date)}'`,
+    STOP_TIME: `'${isoDate(state.date + WINDOW_DAYS)}'`,
+    STEP_SIZE: "'1 h'",
+    QUANTITIES: "'4'",
+    ANG_FORMAT: "'DEG'",
+  });
+  return `https://ssd.jpl.nasa.gov/api/horizons.api?${query}`;
+}
+
+function downloadCsv() {
+  const site = sites.get(state.site)!.site;
+  const [lon, lat] = aimLonLat();
+  const fixed = `"${site.name}",${lat.toFixed(4)},${lon.toFixed(3)}`;
+  const rows = chances.map((chance, date) => `${fixed},${isoDate(date)},${chance.toFixed(3)},${chance >= GOOD_CHANCE}`);
+  const header = "site,aim_latitude,aim_longitude_east,landing_date_utc,chance_mission_works,meets_90_percent_target";
+  const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `margen-${site.id}-${Math.round(state.aim[0])}-${Math.round(state.aim[1])}.csv`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 function renderAim(cell: number) {
   const data = sites.get(state.site)!;
   const [lon, lat] = aimLonLat();
   const [x, y] = [data.site.x0 + state.aim[0], data.site.y0 - state.aim[1]];
+  byId<HTMLAnchorElement>("horizons-link").href = horizonsUrl(lon, lat, data.ground[cell]);
   byId("aim-coords").textContent = `${Math.abs(lat).toFixed(4)}° ${lat < 0 ? "S" : "N"}, ${lon.toFixed(3)}° E`;
   byId("aim-detail").textContent = `Ground ${data.ground[cell].toLocaleString("en-US")} m · ${(Math.hypot(x, y) / 1000).toFixed(1)} km from the south pole`;
 }
@@ -529,6 +563,7 @@ byId("copy-link").addEventListener("click", async () => {
   await navigator.clipboard.writeText(location.href);
   flash(byId("copy-link"), "Link copied");
 });
+byId("download-csv").addEventListener("click", downloadCsv);
 byId("best").addEventListener("click", () => update({ aim: bestAim(state.site, state.date) }));
 addEventListener("resize", render);
 onThemeChange(() => {

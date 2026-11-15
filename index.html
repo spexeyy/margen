@@ -69,6 +69,7 @@
           <div class="aim-row">
             <span class="aim-coords" id="aim-coords" title="Planetocentric latitude and east longitude, mean Earth/polar axis frame, as in NASA LOLA maps"></span>
             <button type="button" class="copy" id="copy-aim">Copy</button>
+            <a class="copy" id="horizons-link" target="_blank" rel="noopener" title="The Sun's position from this aim point for the first 14 days, straight from JPL Horizons">Check in JPL Horizons ↗</a>
           </div>
         </div>
       </section>
@@ -141,7 +142,10 @@
       <section class="year-panel">
         <div class="year-head">
           <h2>Chance by landing date · same aim</h2>
-          <span id="year-hover"></span>
+          <div class="year-tools">
+            <span id="year-hover"></span>
+            <button type="button" class="copy" id="download-csv">Download CSV</button>
+          </div>
         </div>
         <canvas id="year" tabindex="0" role="slider" aria-label="Chance by landing date. Click or use the arrow keys to pick a date." aria-valuemin="0"></canvas>
         <ul class="legend">
